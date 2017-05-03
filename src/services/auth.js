@@ -1,4 +1,4 @@
-let storedToken = 'token';
+let storedToken;
 
 const auth = {
 	getPersistedToken: () => {

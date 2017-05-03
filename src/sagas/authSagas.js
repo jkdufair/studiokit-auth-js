@@ -1,26 +1,30 @@
-import { call, put, race, take, takeEvery } from 'redux-saga/effects';
-import { auth } from '../services';
+import { call, put, race, take, all } from 'redux-saga/effects';
 import actions, { createAction } from '../actions';
+import { auth } from '../services';
 
 function* casLoginFlow(payload) {
 	// ticket -> code -> token
-	console.log('casLoginFlow')
+	return 'tokenViaCas'
 }
 
 function* shibLoginFlow(payload) {
 	// code -> token
+	return 'tokenViaShib'
 }
 
 function* localLoginFlow(payload) {
 	// credentials -> code -> token
+	return 'tokenViaLocal'
 }
 
 function* facebookLoginFlow(payload) {
 	// ???
+	return 'noFreakingClue'
 }
 
 export function* loginFlow() {
 	const persistentToken = yield call(auth.getPersistedToken);
+
 	if (persistentToken) {
 		yield put(createAction(actions.STORE_TOKEN, { token: persistentToken }))
 	}
@@ -45,18 +49,21 @@ export function* loginFlow() {
 				token = yield call(facebookLoginFlow, facebookAction.payload);
 			}
 
-			yield put(createAction(actions.STORE_TOKEN, { token: token }))
-			yield call(auth.persistToken, token)
+			yield all({
+				storeToken: put(createAction(actions.STORE_TOKEN, { token: token })),
+				persistToken: call(auth.persistToken, token)
+			})
 		}
 
-		yield put(createAction(actions.LOGIN_SUCCESS))
+		yield all({
+			loginSuccess: put(createAction(actions.LOGIN_SUCCESS)),
+			logOut: take(actions.LOG_OUT)
+		})
 
-		// get user data
-
-		yield take(actions.LOG_OUT);
-		
-		yield put(createAction(actions.DELETE_TOKEN))
-		yield call(auth.persistToken, null);
+		yield all({
+			deleteToken: put(createAction(actions.DELETE_TOKEN)),
+			deletePersistedToken: call(auth.persistToken, null)
+		});
 		token = null;
 	}
 }

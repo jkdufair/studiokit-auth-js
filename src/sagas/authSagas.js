@@ -20,9 +20,10 @@ function* localLoginFlow(credentials) {
 	const getCodeModelName = 'codeFromLocalCredentials'
 	yield put(createAction(netActions.FETCH_DATA, {
 		modelName: getCodeModelName,
-		body: credentials
+		body: credentials,
+		noStore: true
 	}))
-	const action = yield take((action) => action.type === netActions.STORE_FETCH_RESULT && action.modelName === getCodeModelName)
+	const action = yield take((action) => action.type === netActions.FETCH_RESULT_TRANSIENT && action.modelName === getCodeModelName)
 	const code = action.data.Code
 	if (!code) {
 		return null
@@ -40,9 +41,11 @@ function* localLoginFlow(credentials) {
 	const formBodyString = formBody.join('&')
 	yield put(createAction(netActions.FETCH_DATA, {
 		modelName: getTokenModelName,
-		body: formBodyString
+		body: formBodyString,
+		noStore: true
 	}))
-	return yield take((action) => action.type === netActions.STORE_FETCH_RESULT && action.modelName === getTokenModelName)
+	const tokenFetchResultAction = yield take((action) => action.type === netActions.FETCH_RESULT_TRANSIENT && action.modelName === getTokenModelName)
+	return tokenFetchResultAction.data
 }
 
 function* facebookLoginFlow(payload) {
@@ -100,7 +103,5 @@ export function* auth(clientCredentialsParam) {
 			});
 			token = null;
 		}
-
-		// TODO: put login failure
 	}
 }

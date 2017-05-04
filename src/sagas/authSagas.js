@@ -1,20 +1,48 @@
-import { call, put, race, take, all } from 'redux-saga/effects';
-import actions, { createAction } from '../actions';
-import { auth } from '../services';
+import { call, put, race, take, all } from 'redux-saga/effects'
+import actions, { createAction } from '../actions'
+import { actions as netActions } from 'studiokit-net-js'
+import { authService } from '../services'
 
-function* casLoginFlow(payload) {
+let clientCredentials
+
+function* casLoginFlow() {
 	// ticket -> code -> token
 	return 'tokenViaCas'
 }
 
-function* shibLoginFlow(payload) {
+function* shibLoginFlow() {
 	// code -> token
 	return 'tokenViaShib'
 }
 
-function* localLoginFlow(payload) {
+function* localLoginFlow(credentials) {
 	// credentials -> code -> token
-	return 'tokenViaLocal'
+	const getCodeModelName = 'codeFromLocalCredentials'
+	yield put(createAction(netActions.FETCH_DATA, {
+		modelName: getCodeModelName,
+		body: credentials
+	}))
+	const action = yield take((action) => action.type === netActions.STORE_FETCH_RESULT && action.modelName === getCodeModelName)
+	const code = action.data.Code
+	if (!code) {
+		return null
+	}
+
+	const getTokenModelName = 'tokenFromCode'
+	// Manually creating form-url-encoded body here because NOTHING else uses this content-type
+	// but the OAuth spec requires it
+	const formBody = [
+		'grant_type=authorization_code',
+		`client_id=${clientCredentials.client_id}`,
+		`client_secret=${clientCredentials.client_secret}`,
+		`code=${encodeURIComponent(code)}`
+	]
+	const formBodyString = formBody.join('&')
+	yield put(createAction(netActions.FETCH_DATA, {
+		modelName: getTokenModelName,
+		body: formBodyString
+	}))
+	return yield take((action) => action.type === netActions.STORE_FETCH_RESULT && action.modelName === getTokenModelName)
 }
 
 function* facebookLoginFlow(payload) {
@@ -22,8 +50,13 @@ function* facebookLoginFlow(payload) {
 	return 'noFreakingClue'
 }
 
-export function* loginFlow() {
-	const persistentToken = yield call(auth.getPersistedToken);
+export function* auth(clientCredentialsParam) {
+	if (!clientCredentialsParam) {
+		throw new Error('\'clientCredentials\' is required for auth saga')
+	}
+	clientCredentials = clientCredentialsParam
+
+	const persistentToken = yield call(authService.getPersistedToken);
 
 	if (persistentToken) {
 		yield put(createAction(actions.STORE_TOKEN, { token: persistentToken }))
@@ -51,19 +84,23 @@ export function* loginFlow() {
 
 			yield all({
 				storeToken: put(createAction(actions.STORE_TOKEN, { token: token })),
-				persistToken: call(auth.persistToken, token)
+				persistToken: call(authService.persistToken, token)
 			})
 		}
 
-		yield all({
-			loginSuccess: put(createAction(actions.LOGIN_SUCCESS)),
-			logOut: take(actions.LOG_OUT)
-		})
+		if (token) {
+			yield all({
+				loginSuccess: put(createAction(actions.LOGIN_SUCCESS)),
+				logOut: take(actions.LOG_OUT)
+			})
 
-		yield all({
-			deleteToken: put(createAction(actions.DELETE_TOKEN)),
-			deletePersistedToken: call(auth.persistToken, null)
-		});
-		token = null;
+			yield all({
+				deleteToken: put(createAction(actions.DELETE_TOKEN)),
+				deletePersistedToken: call(authService.persistToken, null)
+			});
+			token = null;
+		}
+
+		// TODO: put login failure
 	}
 }

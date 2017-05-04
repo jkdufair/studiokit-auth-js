@@ -1,3 +1,4 @@
+const TOKEN_FROM_CODE = 'TOKEN_FROM_CODE'
 const STORE_TOKEN = 'STORE_TOKEN'
 const DELETE_TOKEN = 'DELETE_TOKEN'
 const CAS_LOGIN = 'CAS_LOGIN'
@@ -11,4 +12,4 @@ export function createAction(type, payload) {
 	return Object.assign({}, {type}, payload)
 }
 
-export default { STORE_TOKEN, DELETE_TOKEN, CAS_LOGIN, SHIB_LOGIN, LOCAL_LOGIN, FACEBOOK_LOGIN, LOGIN_SUCCESS, LOG_OUT }
+export default { TOKEN_FROM_CODE, STORE_TOKEN, DELETE_TOKEN, CAS_LOGIN, SHIB_LOGIN, LOCAL_LOGIN, FACEBOOK_LOGIN, LOGIN_SUCCESS, LOG_OUT }

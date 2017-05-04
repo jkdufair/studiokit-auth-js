@@ -1,3 +1,3 @@
-import { loginFlow } from './authSagas'
+import { auth } from './authSagas'
 import { user } from './userSagas'
-export default { loginFlow, user }
+export default { auth, user }

@@ -18,12 +18,12 @@ function* shibLoginFlow() {
 function* localLoginFlow(credentials) {
 	// credentials -> code -> token
 	const getCodeModelName = 'codeFromLocalCredentials'
-	yield put(createAction(netActions.FETCH_DATA, {
+	yield put(createAction(netActions.DATA_REQUESTED, {
 		modelName: getCodeModelName,
 		body: credentials,
 		noStore: true
 	}))
-	const action = yield take((action) => action.type === netActions.FETCH_RESULT_TRANSIENT && action.modelName === getCodeModelName)
+	const action = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getCodeModelName)
 	const code = action.data.Code
 	if (!code) {
 		return null
@@ -39,12 +39,12 @@ function* localLoginFlow(credentials) {
 		`code=${encodeURIComponent(code)}`
 	]
 	const formBodyString = formBody.join('&')
-	yield put(createAction(netActions.FETCH_DATA, {
+	yield put(createAction(netActions.DATA_REQUESTED, {
 		modelName: getTokenModelName,
 		body: formBodyString,
 		noStore: true
 	}))
-	const tokenFetchResultAction = yield take((action) => action.type === netActions.FETCH_RESULT_TRANSIENT && action.modelName === getTokenModelName)
+	const tokenFetchResultAction = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getTokenModelName)
 	return tokenFetchResultAction.data
 }
 
@@ -59,22 +59,16 @@ export function* auth(clientCredentialsParam) {
 	}
 	clientCredentials = clientCredentialsParam
 
-	const persistentToken = yield call(authService.getPersistedToken);
-
-	if (persistentToken) {
-		yield put(createAction(actions.STORE_TOKEN, { token: persistentToken }))
-	}
-
-	let token = persistentToken;
+	let token = yield call(authService.getPersistedToken)
 	while (true) {
 		if (!token) {
 			const { casAction, shibAction, localAction, facebookAction } = yield race({
-				casAction: take(actions.CAS_LOGIN),
-				shibAction: take(actions.SHIB_LOGIN),
-				localAction: take(actions.LOCAL_LOGIN),
-				facebookAction: take(actions.FACEBOOK_LOGIN)
+				casAction: take(actions.CAS_LOGIN_REQUESTED),
+				shibAction: take(actions.SHIB_LOGIN_REQUESTED),
+				localAction: take(actions.LOCAL_LOGIN_REQUESTED),
+				facebookAction: take(actions.FACEBOOK_LOGIN_REQUESTED)
 			});
-
+			
 			if (casAction) {
 				token = yield call(casLoginFlow, casAction.payload);
 			} else if (shibAction) {
@@ -84,24 +78,19 @@ export function* auth(clientCredentialsParam) {
 			} else if (facebookAction) {
 				token = yield call(facebookLoginFlow, facebookAction.payload);
 			}
-
-			yield all({
-				storeToken: put(createAction(actions.STORE_TOKEN, { token: token })),
-				persistToken: call(authService.persistToken, token)
-			})
 		}
 
 		if (token) {
 			yield all({
-				loginSuccess: put(createAction(actions.LOGIN_SUCCESS)),
-				logOut: take(actions.LOG_OUT)
+				persistToken: call(authService.persistToken, token),
+				loginSuccess: put(createAction(actions.LOGIN_SUCCEEDED)),
+				logOut: take(actions.LOG_OUT_REQUESTED)
 			})
-
-			yield all({
-				deleteToken: put(createAction(actions.DELETE_TOKEN)),
-				deletePersistedToken: call(authService.persistToken, null)
-			});
-			token = null;
+		} else {
+			yield put(createAction(actions.LOGIN_FAILED))
 		}
+
+		yield call(authService.persistToken, null)
+		token = null;
 	}
 }

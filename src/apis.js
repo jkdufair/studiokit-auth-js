@@ -14,7 +14,7 @@ const apis = {
 		}
 	},
 	userInfo: {
-		path: '/api/userinfo'
+		path: '/api/Account/UserInfo'
 	}
 }
 

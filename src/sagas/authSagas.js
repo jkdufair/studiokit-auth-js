@@ -4,6 +4,7 @@ import { actions as netActions } from 'studiokit-net-js'
 import { authService } from '../services'
 
 let clientCredentials
+let oauthToken
 
 function* casLoginFlow() {
 	// ticket -> code -> token
@@ -45,7 +46,7 @@ function* localLoginFlow(credentials) {
 		noStore: true
 	}))
 	const tokenFetchResultAction = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getTokenModelName)
-	return tokenFetchResultAction.data
+	return tokenFetchResultAction.data.error ? null : tokenFetchResultAction.data
 }
 
 function* facebookLoginFlow(payload) {
@@ -59,9 +60,9 @@ export function* auth(clientCredentialsParam) {
 	}
 	clientCredentials = clientCredentialsParam
 
-	let token = yield call(authService.getPersistedToken)
+	oauthToken = yield call(authService.getPersistedToken)
 	while (true) {
-		if (!token) {
+		if (!oauthToken) {
 			const { casAction, shibAction, localAction, facebookAction } = yield race({
 				casAction: take(actions.CAS_LOGIN_REQUESTED),
 				shibAction: take(actions.SHIB_LOGIN_REQUESTED),
@@ -70,20 +71,20 @@ export function* auth(clientCredentialsParam) {
 			});
 			
 			if (casAction) {
-				token = yield call(casLoginFlow, casAction.payload);
+				oauthToken = yield call(casLoginFlow, casAction.payload);
 			} else if (shibAction) {
-				token = yield call(shibLoginFlow, shibAction.payload);
+				oauthToken = yield call(shibLoginFlow, shibAction.payload);
 			} else if (localAction) {
-				token = yield call(localLoginFlow, localAction.payload);
+				oauthToken = yield call(localLoginFlow, localAction.payload);
 			} else if (facebookAction) {
-				token = yield call(facebookLoginFlow, facebookAction.payload);
+				oauthToken = yield call(facebookLoginFlow, facebookAction.payload);
 			}
 		}
 
-		if (token) {
+		if (oauthToken) {
 			yield all({
-				persistToken: call(authService.persistToken, token),
-				loginSuccess: put(createAction(actions.LOGIN_SUCCEEDED)),
+				persistToken: call(authService.persistToken, oauthToken),
+				loginSuccess: put(createAction(actions.LOGIN_SUCCEEDED, { oauthToken })),
 				logOut: take(actions.LOG_OUT_REQUESTED)
 			})
 		} else {
@@ -91,6 +92,6 @@ export function* auth(clientCredentialsParam) {
 		}
 
 		yield call(authService.persistToken, null)
-		token = null;
+		oauthToken = null;
 	}
 }

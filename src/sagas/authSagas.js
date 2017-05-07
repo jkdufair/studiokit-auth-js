@@ -91,7 +91,10 @@ export function* auth(clientCredentialsParam) {
 			yield put(createAction(actions.LOGIN_FAILED))
 		}
 
-		yield call(authService.persistToken, null)
+		yield all({
+			clearUserData: put(createAction(netActions.KEY_REMOVAL_REQUESTED, {modelName: 'user'})),
+			clearPersistentToken: call(authService.persistToken, null)
+		})
 		oauthToken = null;
 	}
 }

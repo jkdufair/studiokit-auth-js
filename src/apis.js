@@ -1,4 +1,4 @@
-const apis = {	
+const apis = {
 	codeFromTicket: {
 		path: '/???'
 	},
@@ -13,8 +13,10 @@ const apis = {
 			'Content-Type': 'application/x-www-form-urlencoded'
 		}
 	},
-	userInfo: {
-		path: '/api/Account/UserInfo'
+	user: {
+		userInfo: {
+			path: '/api/Account/UserInfo'
+		}
 	}
 }
 

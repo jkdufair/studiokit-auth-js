@@ -6,7 +6,7 @@ const apis = {
 		path: '/api/account/local',
 		method: 'POST'
 	},
-	tokenFromCode: {
+	getToken: {
 		path: '/token',
 		method: 'POST',
 		headers: {

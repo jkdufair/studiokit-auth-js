@@ -2,7 +2,8 @@ import actions from '../actions'
 
 export default function auth(state = {}, action) {
 	switch (action.type) {
-		case actions.LOGIN_SUCCEEDED:
+		case actions.GET_TOKEN_SUCCEEDED:
+		case actions.TOKEN_REFRESH_SUCCEEDED:
 			return Object.assign({}, state, {
 				isAuthenticated: true
 			})

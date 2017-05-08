@@ -1,14 +1,80 @@
-import { call, put, race, take, all } from 'redux-saga/effects'
+import { delay } from 'redux-saga'
+import { call, put, race, take, takeEvery, all } from 'redux-saga/effects'
 import actions, { createAction } from '../actions'
 import { actions as netActions } from 'studiokit-net-js'
 import { authService } from '../services'
 
-let clientCredentials
-let oauthToken
+let clientCredentials, oauthToken
 
-function* casLoginFlow() {
+function* getTokenFromCode(code) {
+	const getTokenModelName = 'getToken'
+	// Manually creating form-url-encoded body here because NOTHING else uses this content-type
+	// but the OAuth spec requires it
+	const formBody = [
+		'grant_type=authorization_code',
+		`client_id=${clientCredentials.client_id}`,
+		`client_secret=${clientCredentials.client_secret}`,
+		`code=${encodeURIComponent(code)}`
+	]
+	const formBodyString = formBody.join('&')
+	yield put(createAction(netActions.DATA_REQUESTED, {
+		modelName: getTokenModelName,
+		body: formBodyString,
+		noStore: true
+	}))
+	const tokenFetchResultAction = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getTokenModelName)
+	return tokenFetchResultAction.data.error ? null : tokenFetchResultAction.data
+}
+
+function* getTokenFromRefreshToken(oauthToken) {
+	const getTokenModelName = 'getToken'
+	// Manually creating form-url-encoded body here because NOTHING else uses this content-type
+	// but the OAuth spec requires it
+	const formBody = [
+		'grant_type=refresh_token',
+		`client_id=${clientCredentials.client_id}`,
+		`client_secret=${clientCredentials.client_secret}`,
+		`refresh_token=${encodeURIComponent(oauthToken.refresh_token)}`
+	]
+	const formBodyString = formBody.join('&')
+	yield put(createAction(netActions.DATA_REQUESTED, {
+		modelName: getTokenModelName,
+		body: formBodyString,
+		noStore: true
+	}))
+	const tokenFetchResultAction = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getTokenModelName)
+	if (tokenFetchResultAction.data.error) {
+		// This should never happen outside of the token having been revoked on the server side
+		yield all({
+			logOut: put(createAction(actions.LOG_OUT_REQUESTED)),
+			signalRefreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED))
+		}) 
+		return null
+	} else {
+		const refreshedToken = tokenFetchResultAction.data
+		yield put(createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: refreshedToken }))
+		yield call(authService.persistToken, refreshedToken)
+		return refreshedToken
+	}
+}
+
+function* tokenRefreshLoop() {
+	while (oauthToken) {
+		const { timerExpired } = yield race({
+			// refresh when token hits 95% of the way to its expiration
+			timerExpired: call(delay, oauthToken.expires_in * .95 * 1000),
+			loggedOut: take(actions.LOG_OUT_REQUESTED)
+		})
+		if (timerExpired) {
+			oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
+		} else {
+			oauthToken = null
+		}
+	}
+}
+
+function* casLoginFlow(action) {
 	// ticket -> code -> token
-	return 'tokenViaCas'
 }
 
 function* shibLoginFlow() {
@@ -29,24 +95,7 @@ function* localLoginFlow(credentials) {
 	if (!code) {
 		return null
 	}
-
-	const getTokenModelName = 'tokenFromCode'
-	// Manually creating form-url-encoded body here because NOTHING else uses this content-type
-	// but the OAuth spec requires it
-	const formBody = [
-		'grant_type=authorization_code',
-		`client_id=${clientCredentials.client_id}`,
-		`client_secret=${clientCredentials.client_secret}`,
-		`code=${encodeURIComponent(code)}`
-	]
-	const formBodyString = formBody.join('&')
-	yield put(createAction(netActions.DATA_REQUESTED, {
-		modelName: getTokenModelName,
-		body: formBodyString,
-		noStore: true
-	}))
-	const tokenFetchResultAction = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getTokenModelName)
-	return tokenFetchResultAction.data.error ? null : tokenFetchResultAction.data
+	return yield getTokenFromCode(code)
 }
 
 function* facebookLoginFlow(payload) {
@@ -54,11 +103,21 @@ function* facebookLoginFlow(payload) {
 	return 'noFreakingClue'
 }
 
+function* handleAuthFailure(action) {
+	// This should be unlikely since we normally have a refresh token loop happening
+	// but if the app is backgrounded, the loop might not be caught up yet
+	if (oauthToken && action.errorData.code >= 400 && action.errorData.code <= 499) {
+		oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
+	}
+}
+
 export function* auth(clientCredentialsParam) {
 	if (!clientCredentialsParam) {
 		throw new Error('\'clientCredentials\' is required for auth saga')
 	}
 	clientCredentials = clientCredentialsParam
+
+	yield takeEvery(netActions.FETCH_TRY_FAILED, handleAuthFailure)
 
 	oauthToken = yield call(authService.getPersistedToken)
 	while (true) {
@@ -84,7 +143,8 @@ export function* auth(clientCredentialsParam) {
 		if (oauthToken) {
 			yield all({
 				persistToken: call(authService.persistToken, oauthToken),
-				loginSuccess: put(createAction(actions.LOGIN_SUCCEEDED, { oauthToken })),
+				loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
+				refreshLoop: call(tokenRefreshLoop, oauthToken),
 				logOut: take(actions.LOG_OUT_REQUESTED)
 			})
 		} else {

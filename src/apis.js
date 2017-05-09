@@ -6,6 +6,10 @@ const apis = {
 		path: '/api/account/local',
 		method: 'POST'
 	},
+	codeFromCasCredentials: {
+		path: '/api/account/CasProxy',
+		method: 'POST'
+	},
 	getToken: {
 		path: '/token',
 		method: 'POST',

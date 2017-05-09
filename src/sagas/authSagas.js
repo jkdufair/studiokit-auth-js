@@ -73,8 +73,20 @@ function* tokenRefreshLoop() {
 	}
 }
 
-function* casLoginFlow(action) {
-	// ticket -> code -> token
+function* casLoginFlow(credentials) {
+	const getCodeModelName = 'codeFromCasCredentials'
+	yield put(createAction(netActions.DATA_REQUESTED, {
+		modelName: getCodeModelName,
+		body: credentials,
+		noStore: true,
+		timeLimit: 120000
+	}))
+	const action = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getCodeModelName)
+	const code = action.data.Code
+	if (!code) {
+		return null
+	}
+	return yield getTokenFromCode(code)
 }
 
 function* shibLoginFlow() {

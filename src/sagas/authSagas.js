@@ -89,6 +89,23 @@ function* headlessCasLoginFlow(credentials) {
 	return yield getTokenFromCode(code)
 }
 
+function* casLoginFlow(ticket) {
+	const getCodeModelName = 'codeFromCasTicket'
+	yield put(createAction(netActions.DATA_REQUESTED, {
+		modelName: getCodeModelName,
+		noStore: true,
+		queryParams: {
+			ticket
+		}
+	}))
+	const action = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getCodeModelName)
+	const code = action.data.Code
+	if (!code) {
+		return null
+	}
+	return yield getTokenFromCode(code)
+}
+
 function* shibLoginFlow() {
 	// code -> token
 	return 'tokenViaShib'
@@ -134,15 +151,18 @@ export function* auth(clientCredentialsParam) {
 	oauthToken = yield call(authService.getPersistedToken)
 	while (true) {
 		if (!oauthToken) {
-			const { casAction, shibAction, localAction, facebookAction } = yield race({
-				casAction: take(actions.HEADLESS_CAS_LOGIN_REQUESTED),
+			const { headlessCasAction, casAction, shibAction, localAction, facebookAction } = yield race({
+				headlessCasAction: take(actions.HEADLESS_CAS_LOGIN_REQUESTED),
+				casAction: take(actions.CAS_LOGIN_REQUESTED),
 				shibAction: take(actions.SHIB_LOGIN_REQUESTED),
 				localAction: take(actions.LOCAL_LOGIN_REQUESTED),
 				facebookAction: take(actions.FACEBOOK_LOGIN_REQUESTED)
 			});
 			
-			if (casAction) {
-				oauthToken = yield call(headlessCasLoginFlow, casAction.payload);
+			if (headlessCasAction) {
+				oauthToken = yield call(headlessCasLoginFlow, headlessCasAction.payload);
+			} else if (casAction) {
+				oauthToken = yield call(casLoginFlow, casAction.payload);
 			} else if (shibAction) {
 				oauthToken = yield call(shibLoginFlow, shibAction.payload);
 			} else if (localAction) {

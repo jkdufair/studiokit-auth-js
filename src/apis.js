@@ -10,6 +10,9 @@ const apis = {
 		path: '/api/account/CasProxy',
 		method: 'POST'
 	},
+	codeFromCasTicket: {
+		path: '/api/Account/ValidatePurdueCasTicket'
+	},
 	getToken: {
 		path: '/token',
 		method: 'POST',

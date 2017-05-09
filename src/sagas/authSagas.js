@@ -73,7 +73,7 @@ function* tokenRefreshLoop() {
 	}
 }
 
-function* casLoginFlow(credentials) {
+function* headlessCasLoginFlow(credentials) {
 	const getCodeModelName = 'codeFromCasCredentials'
 	yield put(createAction(netActions.DATA_REQUESTED, {
 		modelName: getCodeModelName,
@@ -135,14 +135,14 @@ export function* auth(clientCredentialsParam) {
 	while (true) {
 		if (!oauthToken) {
 			const { casAction, shibAction, localAction, facebookAction } = yield race({
-				casAction: take(actions.CAS_LOGIN_REQUESTED),
+				casAction: take(actions.HEADLESS_CAS_LOGIN_REQUESTED),
 				shibAction: take(actions.SHIB_LOGIN_REQUESTED),
 				localAction: take(actions.LOCAL_LOGIN_REQUESTED),
 				facebookAction: take(actions.FACEBOOK_LOGIN_REQUESTED)
 			});
 			
 			if (casAction) {
-				oauthToken = yield call(casLoginFlow, casAction.payload);
+				oauthToken = yield call(headlessCasLoginFlow, casAction.payload);
 			} else if (shibAction) {
 				oauthToken = yield call(shibLoginFlow, shibAction.payload);
 			} else if (localAction) {

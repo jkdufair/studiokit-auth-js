@@ -119,8 +119,13 @@ function* localLoginFlow(credentials) {
 		body: credentials,
 		noStore: true
 	}))
-	const action = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getCodeModelName)
-	const code = action.data.Code
+	const action = yield take((action) =>
+		(action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED || action.type === netActions.FETCH_FAILED)
+			&& action.modelName === getCodeModelName)
+	let code
+	if (action.data && action.data.code) {
+		code = action.data.Code
+	}
 	if (!code) {
 		return null
 	}

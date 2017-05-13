@@ -158,7 +158,8 @@ export function* auth(clientCredentialsParam) {
 				localAction: take(actions.LOCAL_LOGIN_REQUESTED),
 				facebookAction: take(actions.FACEBOOK_LOGIN_REQUESTED)
 			});
-			
+
+			yield put(createAction(actions.LOGIN_REQUESTED))			
 			if (headlessCasAction) {
 				oauthToken = yield call(headlessCasLoginFlow, headlessCasAction.payload);
 			} else if (casAction) {

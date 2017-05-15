@@ -2,7 +2,7 @@ import { delay } from 'redux-saga'
 import { call, put, race, take, takeEvery, all } from 'redux-saga/effects'
 import actions, { createAction } from '../actions'
 import { actions as netActions } from 'studiokit-net-js'
-import { authService } from '../services'
+import { tokenPersistenceService } from '../services'
 
 let clientCredentials, oauthToken
 
@@ -53,7 +53,7 @@ function* getTokenFromRefreshToken(oauthToken) {
 	} else {
 		const refreshedToken = tokenFetchResultAction.data
 		yield put(createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: refreshedToken }))
-		yield call(authService.persistToken, refreshedToken)
+		yield call(tokenPersistenceService.persistToken, refreshedToken)
 		return refreshedToken
 	}
 }
@@ -145,7 +145,8 @@ function* handleAuthFailure(action) {
 	}
 }
 
-export function* auth(clientCredentialsParam) {
+export function* auth(clientCredentialsParam, tokenPersistenceServiceParam = tokenPersistenceService) {
+	const localTokenPersistenceService = tokenPersistenceServiceParam
 	if (!clientCredentialsParam) {
 		throw new Error('\'clientCredentials\' is required for auth saga')
 	}
@@ -153,7 +154,7 @@ export function* auth(clientCredentialsParam) {
 
 	yield takeEvery(netActions.FETCH_TRY_FAILED, handleAuthFailure)
 
-	oauthToken = yield call(authService.getPersistedToken)
+	oauthToken = yield call(localTokenPersistenceService.getPersistedToken)
 	while (true) {
 		if (!oauthToken) {
 			const { headlessCasAction, casAction, shibAction, localAction, facebookAction } = yield race({
@@ -180,7 +181,7 @@ export function* auth(clientCredentialsParam) {
 
 		if (oauthToken) {
 			yield all({
-				persistToken: call(authService.persistToken, oauthToken),
+				persistToken: call(localTokenPersistenceService.persistToken, oauthToken),
 				loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
 				refreshLoop: call(tokenRefreshLoop, oauthToken),
 				logOut: take(actions.LOG_OUT_REQUESTED)
@@ -191,7 +192,7 @@ export function* auth(clientCredentialsParam) {
 
 		yield all({
 			clearUserData: put(createAction(netActions.KEY_REMOVAL_REQUESTED, {modelName: 'user'})),
-			clearPersistentToken: call(authService.persistToken, null)
+			clearPersistentToken: call(localTokenPersistenceService.persistToken, null)
 		})
 		oauthToken = null;
 	}

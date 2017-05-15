@@ -1,6 +1,6 @@
 let storedToken;
 
-const authService = {
+const tokenPersistenceService = {
 	getPersistedToken: () => {
 		return storedToken;
 	},
@@ -10,4 +10,4 @@ const authService = {
 	}
 }
 
-export { authService };
+export { tokenPersistenceService };

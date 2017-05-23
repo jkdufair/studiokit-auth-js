@@ -1,6 +1,6 @@
 {
   "name": "studiokit-auth-js",
-  "version": "0.0.3",
+  "version": "0.0.6",
   "scripts": {
     "build": "babel src -d lib",
     "build:watch": "babel src --watch -d lib",
@@ -33,9 +33,9 @@
   "config": {
     "pre-git": {
       "commit-msg": "simple",
-			"pre-commit": [
-				"yarn babel -- src -d lib"
-			],
+      "pre-commit": [
+        "yarn babel -- src -d lib"
+      ],
       "pre-push": [],
       "post-commit": [],
       "post-checkout": [],

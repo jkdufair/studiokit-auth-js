@@ -3,13 +3,15 @@
   "version": "0.0.3",
   "scripts": {
     "build": "babel src -d lib",
-		"build:watch": "babel src --watch -d lib",
+    "build:watch": "babel src --watch -d lib",
     "test": "mocha --require babel-polyfill --require isomorphic-fetch --compilers js:babel-core/register 'src/**/__tests__/*'",
-    "test:watch": "mocha -w --require babel-polyfill --require isomorphic-fetch --compilers js:babel-core/register 'src/**/__tests__/*'"
+    "test:watch": "mocha -w --require babel-polyfill --require isomorphic-fetch --compilers js:babel-core/register 'src/**/__tests__/*'",
+    "commit": "commit-wizard"
   },
   "description": "Authentication flow for Studio apps at Purdue",
   "main": "lib/index.js",
   "author": "Jason Dufair <jase@purdue.edu>",
+  "repository": "purdue-tlt/studiokit-auth-js",
   "license": "MIT",
   "devDependencies": {
     "babel-cli": "^6.24.1",
@@ -19,12 +21,25 @@
     "fetch-mock": "^5.10.0",
     "immutable": "^3.8.1",
     "isomorphic-fetch": "^2.2.1",
-    "mocha": "^3.3.0"
+    "mocha": "^3.3.0",
+    "pre-git": "^3.14.0"
   },
   "dependencies": {
+    "babel-plugin-transform-runtime": "^6.23.0",
     "babel-preset-env": "^1.4.0",
     "babel-runtime": "^6.23.0",
-    "babel-plugin-transform-runtime": "^6.23.0",
     "redux-saga": "^0.15.1"
+  },
+  "config": {
+    "pre-git": {
+      "commit-msg": "simple",
+			"pre-commit": [
+				"yarn babel -- src -d lib"
+			],
+      "pre-push": [],
+      "post-commit": [],
+      "post-checkout": [],
+      "post-merge": []
+    }
   }
 }

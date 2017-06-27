@@ -1,10 +1,11 @@
 import { delay } from 'redux-saga'
 import { call, put, race, take, takeEvery, all } from 'redux-saga/effects'
-import actions, { createAction } from '../actions'
 import { actions as netActions } from 'studiokit-net-js'
-import { tokenPersistenceService } from '../services'
+import actions, { createAction } from './actions'
+import { tokenPersistenceService } from './services'
 
 let clientCredentials, oauthToken
+let logger
 
 function* getTokenFromCode(code) {
 	const getTokenModelName = 'getToken'
@@ -17,12 +18,18 @@ function* getTokenFromCode(code) {
 		`code=${encodeURIComponent(code)}`
 	]
 	const formBodyString = formBody.join('&')
-	yield put(createAction(netActions.DATA_REQUESTED, {
-		modelName: getTokenModelName,
-		body: formBodyString,
-		noStore: true
-	}))
-	const tokenFetchResultAction = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getTokenModelName)
+	yield put(
+		createAction(netActions.DATA_REQUESTED, {
+			modelName: getTokenModelName,
+			body: formBodyString,
+			noStore: true
+		})
+	)
+	const tokenFetchResultAction = yield take(
+		action =>
+			action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
+			action.modelName === getTokenModelName
+	)
 	return tokenFetchResultAction.data.error ? null : tokenFetchResultAction.data
 }
 
@@ -37,36 +44,60 @@ function* getTokenFromRefreshToken(oauthToken) {
 		`refresh_token=${encodeURIComponent(oauthToken.refresh_token)}`
 	]
 	const formBodyString = formBody.join('&')
-	yield put(createAction(netActions.DATA_REQUESTED, {
-		modelName: getTokenModelName,
-		body: formBodyString,
-		noStore: true
-	}))
-	const tokenFetchResultAction = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getTokenModelName)
+	yield put(
+		createAction(netActions.DATA_REQUESTED, {
+			modelName: getTokenModelName,
+			body: formBodyString,
+			noStore: true
+		})
+	)
+	const tokenFetchResultAction = yield take(
+		action =>
+			action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
+			action.modelName === getTokenModelName
+	)
 	if (tokenFetchResultAction.data.error) {
 		// This should never happen outside of the token having been revoked on the server side
 		yield all({
 			logOut: put(createAction(actions.LOG_OUT_REQUESTED)),
 			signalRefreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED))
-		}) 
+		})
 		return null
 	} else {
-		const refreshedToken = tokenFetchResultAction.data
-		yield put(createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: refreshedToken }))
-		yield call(tokenPersistenceService.persistToken, refreshedToken)
-		return refreshedToken
+		return tokenFetchResultAction.data
 	}
 }
 
-function* tokenRefreshLoop() {
+function* tokenRefreshLoop(tokenPersistenceService) {
+	logger(oauthToken)
 	while (oauthToken) {
+		logger(`Token expires: ${new Date(oauthToken['.expires'])}`)
+
+		// Refresh when token is nearly expired
+		// Could be already expired if it was pulled out of persistent storage
+		const tokenAboutToExpireTime = Math.max(
+			(new Date(oauthToken['.expires']) - new Date()) * 0.85,
+			0
+		)
+		logger(`tokenAboutToExpireTime (ms): ${tokenAboutToExpireTime}`)
 		const { timerExpired } = yield race({
-			// refresh when token hits 95% of the way to its expiration
-			timerExpired: call(delay, oauthToken.expires_in * .95 * 1000),
+			timerExpired: call(delay, tokenAboutToExpireTime),
 			loggedOut: take(actions.LOG_OUT_REQUESTED)
 		})
+		logger('Token refresh loop race complete')
+		logger(`timerExpired: ${timerExpired === true}`)
 		if (timerExpired) {
+			logger('Refreshing OAuth token')
+			logger(oauthToken)
 			oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
+			yield all({
+				sendTokenForIntercept: put(
+					createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: oauthToken })
+				),
+				persistToken: call(tokenPersistenceService.persistToken, oauthToken)
+			})
+			logger('OAuth token refreshed')
+			logger(oauthToken)
 		} else {
 			oauthToken = null
 		}
@@ -75,13 +106,19 @@ function* tokenRefreshLoop() {
 
 function* headlessCasLoginFlow(credentials) {
 	const getCodeModelName = 'codeFromCasCredentials'
-	yield put(createAction(netActions.DATA_REQUESTED, {
-		modelName: getCodeModelName,
-		body: credentials,
-		noStore: true,
-		timeLimit: 120000
-	}))
-	const action = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getCodeModelName)
+	yield put(
+		createAction(netActions.DATA_REQUESTED, {
+			modelName: getCodeModelName,
+			body: credentials,
+			noStore: true,
+			timeLimit: 120000
+		})
+	)
+	const action = yield take(
+		action =>
+			action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
+			action.modelName === getCodeModelName
+	)
 	const code = action.data.Code
 	if (!code) {
 		return null
@@ -91,14 +128,20 @@ function* headlessCasLoginFlow(credentials) {
 
 function* casLoginFlow(ticket) {
 	const getCodeModelName = 'codeFromCasTicket'
-	yield put(createAction(netActions.DATA_REQUESTED, {
-		modelName: getCodeModelName,
-		noStore: true,
-		queryParams: {
-			ticket
-		}
-	}))
-	const action = yield take((action) => action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === getCodeModelName)
+	yield put(
+		createAction(netActions.DATA_REQUESTED, {
+			modelName: getCodeModelName,
+			noStore: true,
+			queryParams: {
+				ticket
+			}
+		})
+	)
+	const action = yield take(
+		action =>
+			action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
+			action.modelName === getCodeModelName
+	)
 	const code = action.data.Code
 	if (!code) {
 		return null
@@ -114,14 +157,19 @@ function* shibLoginFlow() {
 function* localLoginFlow(credentials) {
 	// credentials -> code -> token
 	const getCodeModelName = 'codeFromLocalCredentials'
-	yield put(createAction(netActions.DATA_REQUESTED, {
-		modelName: getCodeModelName,
-		body: credentials,
-		noStore: true
-	}))
-	const action = yield take((action) =>
-		(action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED || action.type === netActions.FETCH_FAILED)
-			&& action.modelName === getCodeModelName)
+	yield put(
+		createAction(netActions.DATA_REQUESTED, {
+			modelName: getCodeModelName,
+			body: credentials,
+			noStore: true
+		})
+	)
+	const action = yield take(
+		action =>
+			(action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED ||
+				action.type === netActions.FETCH_FAILED) &&
+			action.modelName === getCodeModelName
+	)
 	let code
 	if (action.data && action.data.code) {
 		code = action.data.Code
@@ -145,15 +193,31 @@ function* handleAuthFailure(action) {
 	}
 }
 
-export function* auth(clientCredentialsParam, tokenPersistenceServiceParam = tokenPersistenceService) {
-	const localTokenPersistenceService = tokenPersistenceServiceParam
+/**
+ * A default logger function that logs to the console. Used if no other logger is provided
+ * 
+ * @param {string} message - The message to log
+ */
+const consoleLogger = message => {
+	console.debug(message)
+}
+
+export default function* authSaga(
+	clientCredentialsParam,
+	tokenPersistenceServiceParam = tokenPersistenceService,
+	loggerParam = consoleLogger
+) {
+	logger = loggerParam
+	logger(`logger set to ${logger.name}`)
+
 	if (!clientCredentialsParam) {
-		throw new Error('\'clientCredentials\' is required for auth saga')
+		throw new Error("'clientCredentials' is required for auth saga")
 	}
 	clientCredentials = clientCredentialsParam
 
 	yield takeEvery(netActions.FETCH_TRY_FAILED, handleAuthFailure)
 
+	const localTokenPersistenceService = tokenPersistenceServiceParam
 	oauthToken = yield call(localTokenPersistenceService.getPersistedToken)
 	while (true) {
 		if (!oauthToken) {
@@ -163,19 +227,19 @@ export function* auth(clientCredentialsParam, tokenPersistenceServiceParam = tok
 				shibAction: take(actions.SHIB_LOGIN_REQUESTED),
 				localAction: take(actions.LOCAL_LOGIN_REQUESTED),
 				facebookAction: take(actions.FACEBOOK_LOGIN_REQUESTED)
-			});
+			})
 
-			yield put(createAction(actions.LOGIN_REQUESTED))			
+			yield put(createAction(actions.LOGIN_REQUESTED))
 			if (headlessCasAction) {
-				oauthToken = yield call(headlessCasLoginFlow, headlessCasAction.payload);
+				oauthToken = yield call(headlessCasLoginFlow, headlessCasAction.payload)
 			} else if (casAction) {
-				oauthToken = yield call(casLoginFlow, casAction.payload);
+				oauthToken = yield call(casLoginFlow, casAction.payload)
 			} else if (shibAction) {
-				oauthToken = yield call(shibLoginFlow, shibAction.payload);
+				oauthToken = yield call(shibLoginFlow, shibAction.payload)
 			} else if (localAction) {
-				oauthToken = yield call(localLoginFlow, localAction.payload);
+				oauthToken = yield call(localLoginFlow, localAction.payload)
 			} else if (facebookAction) {
-				oauthToken = yield call(facebookLoginFlow, facebookAction.payload);
+				oauthToken = yield call(facebookLoginFlow, facebookAction.payload)
 			}
 		}
 
@@ -183,7 +247,7 @@ export function* auth(clientCredentialsParam, tokenPersistenceServiceParam = tok
 			yield all({
 				persistToken: call(localTokenPersistenceService.persistToken, oauthToken),
 				loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
-				refreshLoop: call(tokenRefreshLoop, oauthToken),
+				refreshLoop: call(tokenRefreshLoop, localTokenPersistenceService),
 				logOut: take(actions.LOG_OUT_REQUESTED)
 			})
 		} else {
@@ -191,9 +255,9 @@ export function* auth(clientCredentialsParam, tokenPersistenceServiceParam = tok
 		}
 
 		yield all({
-			clearUserData: put(createAction(netActions.KEY_REMOVAL_REQUESTED, {modelName: 'user'})),
+			clearUserData: put(createAction(netActions.KEY_REMOVAL_REQUESTED, { modelName: 'user' })),
 			clearPersistentToken: call(localTokenPersistenceService.persistToken, null)
 		})
-		oauthToken = null;
+		oauthToken = null
 	}
 }

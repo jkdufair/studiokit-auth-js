@@ -1,4 +1,4 @@
-import actions from '../actions'
+import actions from './actions'
 
 const initialState = {
 	isAuthenticating: false,
@@ -6,7 +6,7 @@ const initialState = {
 	didFail: false
 }
 
-export default function auth(state = initialState, action) {
+export default function authReducer(state = initialState, action) {
 	switch (action.type) {
 		case actions.GET_TOKEN_SUCCEEDED:
 		case actions.TOKEN_REFRESH_SUCCEEDED:

@@ -114,7 +114,6 @@ function* headlessCasLoginFlow(credentials) {
 			timeLimit: 120000
 		})
 	)
-	console.debug('before')
 	const { resultReceived, loginFailed } = yield race({
 		resultReceived: take(
 			action =>
@@ -125,7 +124,6 @@ function* headlessCasLoginFlow(credentials) {
 			action => action.type === netActions.FETCH_FAILED && action.modelName === getCodeModelName
 		)
 	})
-	console.debug('after')
 	if (loginFailed) {
 		return null
 	}

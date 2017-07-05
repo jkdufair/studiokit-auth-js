@@ -114,12 +114,22 @@ function* headlessCasLoginFlow(credentials) {
 			timeLimit: 120000
 		})
 	)
-	const action = yield take(
-		action =>
-			action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
-			action.modelName === getCodeModelName
-	)
-	const code = action.data.Code
+	console.debug('before')
+	const { resultReceived, loginFailed } = yield race({
+		resultReceived: take(
+			action =>
+				action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
+				action.modelName === getCodeModelName
+		),
+		loginFailed: take(
+			action => action.type === netActions.FETCH_FAILED && action.modelName === getCodeModelName
+		)
+	})
+	console.debug('after')
+	if (loginFailed) {
+		return null
+	}
+	const code = resultReceived.data.Code
 	if (!code) {
 		return null
 	}

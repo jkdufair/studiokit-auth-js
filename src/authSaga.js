@@ -215,18 +215,20 @@ export default function* authSaga(
 	tokenPersistenceServiceParam = tokenPersistenceService,
 	loggerParam = consoleLogger
 ) {
-	logger = loggerParam
-	logger(`logger set to ${logger.name}`)
-
 	if (!clientCredentialsParam) {
 		throw new Error("'clientCredentials' is required for auth saga")
 	}
 	clientCredentials = clientCredentialsParam
 
-	yield takeEvery(netActions.FETCH_TRY_FAILED, handleAuthFailure)
-
 	const localTokenPersistenceService = tokenPersistenceServiceParam
 	oauthToken = yield call(localTokenPersistenceService.getPersistedToken)
+	yield put(createAction(actions.AUTH_INITIALIZED))
+
+	logger = loggerParam
+	logger(`logger set to ${logger.name}`)
+
+	//yield takeEvery(netActions.FETCH_TRY_FAILED, handleAuthFailure)
+
 	while (true) {
 		if (!oauthToken) {
 			const { headlessCasAction, casAction, shibAction, localAction, facebookAction } = yield race({
@@ -253,9 +255,9 @@ export default function* authSaga(
 
 		if (oauthToken) {
 			yield all({
-				persistToken: call(localTokenPersistenceService.persistToken, oauthToken),
 				loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
 				refreshLoop: call(tokenRefreshLoop, localTokenPersistenceService),
+				persistToken: call(localTokenPersistenceService.persistToken, oauthToken),
 				logOut: take(actions.LOG_OUT_REQUESTED)
 			})
 		} else {
@@ -268,4 +270,9 @@ export default function* authSaga(
 		})
 		oauthToken = null
 	}
+}
+
+export function getOauthToken() {
+	console.debug('getOauthToken: ', oauthToken)
+	return oauthToken
 }

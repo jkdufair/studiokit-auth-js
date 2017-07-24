@@ -68,10 +68,21 @@ function* getTokenFromRefreshToken(oauthToken) {
 	}
 }
 
+function* performTokenRefresh() {
+	logger('Refreshing OAuth token')
+	oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
+	yield all({
+		sendTokenForIntercept: put(
+			createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: oauthToken })
+		),
+		persistToken: call(tokenPersistenceService.persistToken, oauthToken)
+	})
+	logger('OAuth token refreshed')
+}
+
 function* tokenRefreshLoop(tokenPersistenceService) {
-	logger(oauthToken)
 	while (oauthToken) {
-		logger(`Token expires: ${new Date(oauthToken['.expires'])}`)
+		logger(`token expires: ${new Date(oauthToken['.expires'])}`)
 
 		// Refresh when token is nearly expired
 		// Could be already expired if it was pulled out of persistent storage
@@ -79,26 +90,16 @@ function* tokenRefreshLoop(tokenPersistenceService) {
 			(new Date(oauthToken['.expires']) - new Date()) * 0.85,
 			0
 		)
-		logger(`tokenAboutToExpireTime (ms): ${tokenAboutToExpireTime}`)
-		const { timerExpired } = yield race({
+		const { timerExpired, loggedOut } = yield race({
 			timerExpired: call(delay, tokenAboutToExpireTime),
+			restart: take(actions.TOKEN_REFRESH_SUCCEEDED),
 			loggedOut: take(actions.LOG_OUT_REQUESTED)
 		})
-		logger('Token refresh loop race complete')
-		logger(`timerExpired: ${timerExpired === true}`)
 		if (timerExpired) {
-			logger('Refreshing OAuth token')
-			logger(oauthToken)
-			oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
-			yield all({
-				sendTokenForIntercept: put(
-					createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: oauthToken })
-				),
-				persistToken: call(tokenPersistenceService.persistToken, oauthToken)
-			})
-			logger('OAuth token refreshed')
-			logger(oauthToken)
-		} else {
+			logger('token about to expire - refreshing')
+			yield call(performTokenRefresh)
+		} else if (loggedOut) {
+			logger('logged out - oauth token cleared')
 			oauthToken = null
 		}
 	}
@@ -196,8 +197,14 @@ function* facebookLoginFlow(payload) {
 function* handleAuthFailure(action) {
 	// This should be unlikely since we normally have a refresh token loop happening
 	// but if the app is backgrounded, the loop might not be caught up yet
-	if (oauthToken && action.errorData.code >= 400 && action.errorData.code <= 499) {
-		oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
+	if (
+		oauthToken &&
+		action.errorData.code >= 400 &&
+		action.errorData.code <= 499 &&
+		new Date(oauthToken['.expires']) < new Date()
+	) {
+		logger('token expired - refreshing')
+		yield call(performTokenRefresh)
 	}
 }
 
@@ -227,7 +234,7 @@ export default function* authSaga(
 	logger = loggerParam
 	logger(`logger set to ${logger.name}`)
 
-	//yield takeEvery(netActions.FETCH_TRY_FAILED, handleAuthFailure)
+	yield takeEvery(netActions.FETCH_TRY_FAILED, handleAuthFailure)
 
 	while (true) {
 		if (!oauthToken) {
@@ -273,6 +280,5 @@ export default function* authSaga(
 }
 
 export function getOauthToken() {
-	console.debug('getOauthToken: ', oauthToken)
 	return oauthToken
 }

@@ -2,10 +2,11 @@ import { delay } from 'redux-saga'
 import { call, put, race, take, takeEvery, all } from 'redux-saga/effects'
 import { actions as netActions } from 'studiokit-net-js'
 import actions, { createAction } from './actions'
-import { tokenPersistenceService } from './services'
+import { tokenPersistenceService as defaultTokenPersistenceService } from './services'
 
 let clientCredentials, oauthToken
 let logger
+let tokenPersistenceService
 
 function* getTokenFromCode(code) {
 	const getTokenModelName = 'getToken'
@@ -80,7 +81,7 @@ function* performTokenRefresh() {
 	logger('OAuth token refreshed')
 }
 
-function* tokenRefreshLoop(tokenPersistenceService) {
+function* tokenRefreshLoop() {
 	while (oauthToken) {
 		logger(`token expires: ${new Date(oauthToken['.expires'])}`)
 
@@ -219,7 +220,7 @@ const consoleLogger = message => {
 
 export default function* authSaga(
 	clientCredentialsParam,
-	tokenPersistenceServiceParam = tokenPersistenceService,
+	tokenPersistenceServiceParam = defaultTokenPersistenceService,
 	loggerParam = consoleLogger
 ) {
 	if (!clientCredentialsParam) {
@@ -227,8 +228,8 @@ export default function* authSaga(
 	}
 	clientCredentials = clientCredentialsParam
 
-	const localTokenPersistenceService = tokenPersistenceServiceParam
-	oauthToken = yield call(localTokenPersistenceService.getPersistedToken)
+	tokenPersistenceService = tokenPersistenceServiceParam
+	oauthToken = yield call(tokenPersistenceService.getPersistedToken)
 	yield put(createAction(actions.AUTH_INITIALIZED))
 
 	logger = loggerParam
@@ -263,8 +264,8 @@ export default function* authSaga(
 		if (oauthToken) {
 			yield all({
 				loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
-				refreshLoop: call(tokenRefreshLoop, localTokenPersistenceService),
-				persistToken: call(localTokenPersistenceService.persistToken, oauthToken),
+				refreshLoop: call(tokenRefreshLoop, tokenPersistenceService),
+				persistToken: call(tokenPersistenceService.persistToken, oauthToken),
 				logOut: take(actions.LOG_OUT_REQUESTED)
 			})
 		} else {
@@ -273,7 +274,7 @@ export default function* authSaga(
 
 		yield all({
 			clearUserData: put(createAction(netActions.KEY_REMOVAL_REQUESTED, { modelName: 'user' })),
-			clearPersistentToken: call(localTokenPersistenceService.persistToken, null)
+			clearPersistentToken: call(tokenPersistenceService.persistToken, null)
 		})
 		oauthToken = null
 	}

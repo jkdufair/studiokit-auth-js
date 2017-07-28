@@ -49,7 +49,8 @@ function* getTokenFromRefreshToken(oauthToken) {
 		createAction(netActions.DATA_REQUESTED, {
 			modelName: getTokenModelName,
 			body: formBodyString,
-			noStore: true
+			noStore: true,
+			timeLimit: 60000
 		})
 	)
 	const tokenFetchResultAction = yield take(
@@ -264,7 +265,7 @@ export default function* authSaga(
 		if (oauthToken) {
 			yield all({
 				loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
-				refreshLoop: call(tokenRefreshLoop, tokenPersistenceService),
+				refreshLoop: call(tokenRefreshLoop),
 				persistToken: call(tokenPersistenceService.persistToken, oauthToken),
 				logOut: take(actions.LOG_OUT_REQUESTED)
 			})

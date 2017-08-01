@@ -275,7 +275,7 @@ export default function* authSaga(
 
 		yield all({
 			clearUserData: put(createAction(netActions.KEY_REMOVAL_REQUESTED, { modelName: 'user' })),
-			clearAuthData: put(createAction(netActions.KEY_REMOVAL_REQUESTED, { modelName: 'auth' })),
+			clearAuthData: put(createAction(actions.LOG_OUT_REQUESTED)),
 			clearPersistentToken: call(tokenPersistenceService.persistToken, null)
 		})
 		oauthToken = null

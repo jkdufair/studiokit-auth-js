@@ -7,6 +7,7 @@ import { tokenPersistenceService as defaultTokenPersistenceService } from './ser
 let clientCredentials, oauthToken
 let logger
 let tokenPersistenceService
+let refreshLock
 
 function* getTokenFromCode(code) {
 	const getTokenModelName = 'getToken'
@@ -72,6 +73,9 @@ function* getTokenFromRefreshToken(oauthToken) {
 
 function* performTokenRefresh() {
 	logger('Refreshing OAuth token')
+	if (refreshLock)
+		return
+	refreshLock = true
 	oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
 	yield all({
 		sendTokenForIntercept: put(
@@ -79,6 +83,7 @@ function* performTokenRefresh() {
 		),
 		persistToken: call(tokenPersistenceService.persistToken, oauthToken)
 	})
+	refreshLock = false
 	logger('OAuth token refreshed')
 }
 

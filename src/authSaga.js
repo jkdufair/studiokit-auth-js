@@ -286,6 +286,12 @@ export default function* authSaga(
 	}
 }
 
-export function getOauthToken() {
-	return oauthToken
+export function* getOauthToken() {
+	if (refreshLock) {
+		return null
+	} else if (oauthToken && oauthToken['.expires'] && new Date(oauthToken['.expires']) < new Date()) {
+		return yield performTokenRefresh()
+	} else {
+		return oauthToken
+	}
 }

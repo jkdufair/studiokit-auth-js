@@ -1,4 +1,3 @@
-import { delay } from 'redux-saga'
 import { call, put, race, take, takeEvery, all } from 'redux-saga/effects'
 import { actions as netActions } from 'studiokit-net-js'
 import actions, { createAction } from './actions'
@@ -86,31 +85,6 @@ function* performTokenRefresh() {
 	})
 	refreshLock = false
 	logger('OAuth token refreshed')
-}
-
-function* tokenRefreshLoop() {
-	while (oauthToken) {
-		logger(`token expires: ${new Date(oauthToken['.expires'])}`)
-
-		// Refresh when token is nearly expired
-		// Could be already expired if it was pulled out of persistent storage
-		const tokenAboutToExpireTime = Math.max(
-			(new Date(oauthToken['.expires']) - new Date()) * 0.85,
-			0
-		)
-		const { timerExpired, loggedOut } = yield race({
-			timerExpired: call(delay, tokenAboutToExpireTime),
-			restart: take(actions.TOKEN_REFRESH_SUCCEEDED),
-			loggedOut: take(actions.LOG_OUT_REQUESTED)
-		})
-		if (timerExpired) {
-			logger('token about to expire - refreshing')
-			yield call(performTokenRefresh)
-		} else if (loggedOut) {
-			logger('logged out - oauth token cleared')
-			oauthToken = null
-		}
-	}
 }
 
 function* headlessCasLoginFlow(credentials) {
@@ -271,7 +245,6 @@ export default function* authSaga(
 		if (oauthToken) {
 			yield all({
 				loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
-				// refreshLoop: call(tokenRefreshLoop),
 				persistToken: call(tokenPersistenceService.persistToken, oauthToken),
 				logOut: take(actions.LOG_OUT_REQUESTED)
 			})

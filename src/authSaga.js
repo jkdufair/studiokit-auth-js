@@ -50,6 +50,7 @@ function* getTokenFromRefreshToken(oauthToken) {
 		createAction(netActions.DATA_REQUESTED, {
 			modelName: getTokenModelName,
 			body: formBodyString,
+			noAuth: true,
 			noStore: true,
 			timeLimit: 60000
 		})
@@ -270,7 +271,7 @@ export default function* authSaga(
 		if (oauthToken) {
 			yield all({
 				loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
-				refreshLoop: call(tokenRefreshLoop),
+				// refreshLoop: call(tokenRefreshLoop),
 				persistToken: call(tokenPersistenceService.persistToken, oauthToken),
 				logOut: take(actions.LOG_OUT_REQUESTED)
 			})
@@ -287,11 +288,18 @@ export default function* authSaga(
 }
 
 export function* getOauthToken() {
-	if (refreshLock) {
-		return null
-	} else if (oauthToken && oauthToken['.expires'] && new Date(oauthToken['.expires']) < new Date()) {
-		return yield performTokenRefresh()
-	} else {
-		return oauthToken
+	if (oauthToken && oauthToken['.expires']) {
+		let currentTime = new Date()
+		currentTime.setSeconds(currentTime.getSeconds() - 30)
+		if (new Date(oauthToken['.expires']) < currentTime) {
+			//start a token refresh and wait for the success action in case another refresh is currently happening
+			yield all([
+				call(performTokenRefresh),
+				take(actions.TOKEN_REFRESH_SUCCEEDED)
+			])
+			// let refreshedToken = yield take(actions.TOKEN_REFRESH_SUCCEEDED)
+			return oauthToken
+		}
 	}
+	return oauthToken
 }

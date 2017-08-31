@@ -287,7 +287,11 @@ export default function* authSaga(
 	}
 }
 
-export function* getOauthToken() {
+export function* getOauthToken(modelName) {
+	//Don't try to refresh the token if we're already in a request to refresh the token
+	if (modelName === 'getToken') {
+		return null
+	}
 	if (oauthToken && oauthToken['.expires']) {
 		let currentTime = new Date()
 		currentTime.setSeconds(currentTime.getSeconds() - 30)
@@ -297,7 +301,6 @@ export function* getOauthToken() {
 				call(performTokenRefresh),
 				take(actions.TOKEN_REFRESH_SUCCEEDED)
 			])
-			// let refreshedToken = yield take(actions.TOKEN_REFRESH_SUCCEEDED)
 			return oauthToken
 		}
 	}

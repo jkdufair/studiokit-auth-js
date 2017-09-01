@@ -1,4 +1,3 @@
-import { delay } from 'redux-saga'
 import { call, put, race, take, takeEvery, all } from 'redux-saga/effects'
 import { actions as netActions } from 'studiokit-net-js'
 import actions, { createAction } from './actions'
@@ -7,6 +6,7 @@ import { tokenPersistenceService as defaultTokenPersistenceService } from './ser
 let clientCredentials, oauthToken
 let logger
 let tokenPersistenceService
+let refreshLock
 
 function* getTokenFromCode(code) {
 	const getTokenModelName = 'getToken'
@@ -49,6 +49,7 @@ function* getTokenFromRefreshToken(oauthToken) {
 		createAction(netActions.DATA_REQUESTED, {
 			modelName: getTokenModelName,
 			body: formBodyString,
+			noAuth: true,
 			noStore: true,
 			timeLimit: 60000
 		})
@@ -72,6 +73,9 @@ function* getTokenFromRefreshToken(oauthToken) {
 
 function* performTokenRefresh() {
 	logger('Refreshing OAuth token')
+	if (refreshLock)
+		return
+	refreshLock = true
 	oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
 	yield all({
 		sendTokenForIntercept: put(
@@ -79,32 +83,8 @@ function* performTokenRefresh() {
 		),
 		persistToken: call(tokenPersistenceService.persistToken, oauthToken)
 	})
+	refreshLock = false
 	logger('OAuth token refreshed')
-}
-
-function* tokenRefreshLoop() {
-	while (oauthToken) {
-		logger(`token expires: ${new Date(oauthToken['.expires'])}`)
-
-		// Refresh when token is nearly expired
-		// Could be already expired if it was pulled out of persistent storage
-		const tokenAboutToExpireTime = Math.max(
-			(new Date(oauthToken['.expires']) - new Date()) * 0.85,
-			0
-		)
-		const { timerExpired, loggedOut } = yield race({
-			timerExpired: call(delay, tokenAboutToExpireTime),
-			restart: take(actions.TOKEN_REFRESH_SUCCEEDED),
-			loggedOut: take(actions.LOG_OUT_REQUESTED)
-		})
-		if (timerExpired) {
-			logger('token about to expire - refreshing')
-			yield call(performTokenRefresh)
-		} else if (loggedOut) {
-			logger('logged out - oauth token cleared')
-			oauthToken = null
-		}
-	}
 }
 
 function* headlessCasLoginFlow(credentials) {
@@ -265,7 +245,6 @@ export default function* authSaga(
 		if (oauthToken) {
 			yield all({
 				loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
-				refreshLoop: call(tokenRefreshLoop),
 				persistToken: call(tokenPersistenceService.persistToken, oauthToken),
 				logOut: take(actions.LOG_OUT_REQUESTED)
 			})
@@ -281,6 +260,22 @@ export default function* authSaga(
 	}
 }
 
-export function getOauthToken() {
+export function* getOauthToken(modelName) {
+	//Don't try to refresh the token if we're already in a request to refresh the token
+	if (modelName === 'getToken') {
+		return null
+	}
+	if (oauthToken && oauthToken['.expires']) {
+		let currentTime = new Date()
+		currentTime.setSeconds(currentTime.getSeconds() - 30)
+		if (new Date(oauthToken['.expires']) < currentTime) {
+			//start a token refresh and wait for the success action in case another refresh is currently happening
+			yield all([
+				call(performTokenRefresh),
+				take(actions.TOKEN_REFRESH_SUCCEEDED)
+			])
+			return oauthToken
+		}
+	}
 	return oauthToken
 }

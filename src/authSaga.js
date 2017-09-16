@@ -8,6 +8,7 @@ let logger
 let tokenPersistenceService
 let refreshLock
 
+// TODO: ...data.Code || ...data.code is because Forecast uses capitalized property names. Needs fixing
 function* getTokenFromCode(code) {
 	const getTokenModelName = 'getToken'
 	// Manually creating form-url-encoded body here because NOTHING else uses this content-type
@@ -73,8 +74,7 @@ function* getTokenFromRefreshToken(oauthToken) {
 
 function* performTokenRefresh() {
 	logger('Refreshing OAuth token')
-	if (refreshLock)
-		return
+	if (refreshLock) return
 	refreshLock = true
 	oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
 	yield all({
@@ -110,7 +110,7 @@ function* headlessCasLoginFlow(credentials) {
 	if (loginFailed) {
 		return null
 	}
-	const code = resultReceived.data.Code
+	const code = resultReceived.data.Code || resultReceived.data.code
 	if (!code) {
 		return null
 	}
@@ -133,7 +133,7 @@ function* casLoginFlow(ticket) {
 			action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
 			action.modelName === getCodeModelName
 	)
-	const code = action.data.Code
+	const code = action.data.Code || action.data.code
 	if (!code) {
 		return null
 	}
@@ -162,8 +162,8 @@ function* localLoginFlow(credentials) {
 			action.modelName === getCodeModelName
 	)
 	let code
-	if (action.data && action.data.code) {
-		code = action.data.Code
+	if (action.data && (action.data.Code || action.data.code)) {
+		code = action.data.Code || action.data.code
 	}
 	if (!code) {
 		return null
@@ -270,10 +270,7 @@ export function* getOauthToken(modelName) {
 		currentTime.setSeconds(currentTime.getSeconds() - 30)
 		if (new Date(oauthToken['.expires']) < currentTime) {
 			//start a token refresh and wait for the success action in case another refresh is currently happening
-			yield all([
-				call(performTokenRefresh),
-				take(actions.TOKEN_REFRESH_SUCCEEDED)
-			])
+			yield all([call(performTokenRefresh), take(actions.TOKEN_REFRESH_SUCCEEDED)])
 			return oauthToken
 		}
 	}

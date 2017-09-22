@@ -87,11 +87,10 @@ function* performTokenRefresh() {
 	logger('OAuth token refreshed')
 }
 
-function* headlessCasLoginFlow(credentials) {
-	const getCodeModelName = 'codeFromCasCredentials'
+function* casCredentialsLoginFlow(credentials, modelName) {
 	yield put(
 		createAction(netActions.DATA_REQUESTED, {
-			modelName: getCodeModelName,
+			modelName: modelName,
 			body: credentials,
 			noStore: true,
 			timeLimit: 120000
@@ -100,11 +99,10 @@ function* headlessCasLoginFlow(credentials) {
 	const { resultReceived, loginFailed } = yield race({
 		resultReceived: take(
 			action =>
-				action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
-				action.modelName === getCodeModelName
+				action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === modelName
 		),
 		loginFailed: take(
-			action => action.type === netActions.FETCH_FAILED && action.modelName === getCodeModelName
+			action => action.type === netActions.FETCH_FAILED && action.modelName === modelName
 		)
 	})
 	if (loginFailed) {
@@ -117,7 +115,15 @@ function* headlessCasLoginFlow(credentials) {
 	return yield getTokenFromCode(code)
 }
 
-function* casLoginFlow(ticket) {
+function* casProxyLoginFlow(credentials) {
+	return yield call(casCredentialsLoginFlow, credentials, 'codeFromCasProxy')
+}
+
+function* casV1LoginFlow(credentials) {
+	return yield call(casCredentialsLoginFlow, credentials, 'codeFromCasV1')
+}
+
+function* casTicketLoginFlow(ticket) {
 	const getCodeModelName = 'codeFromCasTicket'
 	yield put(
 		createAction(netActions.DATA_REQUESTED, {
@@ -220,8 +226,16 @@ export default function* authSaga(
 
 	while (true) {
 		if (!oauthToken) {
-			const { headlessCasAction, casAction, shibAction, localAction, facebookAction } = yield race({
-				headlessCasAction: take(actions.HEADLESS_CAS_LOGIN_REQUESTED),
+			const {
+				casV1Action,
+				casProxyAction,
+				casAction,
+				shibAction,
+				localAction,
+				facebookAction
+			} = yield race({
+				casV1Action: take(actions.CAS_V1_LOGIN_REQUESTED),
+				casProxyAction: take(actions.CAS_PROXY_LOGIN_REQUESTED),
 				casAction: take(actions.CAS_LOGIN_REQUESTED),
 				shibAction: take(actions.SHIB_LOGIN_REQUESTED),
 				localAction: take(actions.LOCAL_LOGIN_REQUESTED),
@@ -229,10 +243,12 @@ export default function* authSaga(
 			})
 
 			yield put(createAction(actions.LOGIN_REQUESTED))
-			if (headlessCasAction) {
-				oauthToken = yield call(headlessCasLoginFlow, headlessCasAction.payload)
+			if (casV1Action) {
+				oauthToken = yield call(casV1LoginFlow, casV1Action.payload)
+			} else if (casProxyAction) {
+				oauthToken = yield call(casProxyLoginFlow, casProxyAction.payload)
 			} else if (casAction) {
-				oauthToken = yield call(casLoginFlow, casAction.payload)
+				oauthToken = yield call(casTicketLoginFlow, casAction.payload)
 			} else if (shibAction) {
 				oauthToken = yield call(shibLoginFlow, shibAction.payload)
 			} else if (localAction) {

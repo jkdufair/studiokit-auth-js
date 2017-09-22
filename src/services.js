@@ -1,13 +1,13 @@
-let storedToken;
+let storedToken
 
 const tokenPersistenceService = {
 	getPersistedToken: () => {
-		return storedToken;
+		return storedToken
 	},
 
-	persistToken: (token) => {
+	persistToken: token => {
 		storedToken = token
 	}
 }
 
-export { tokenPersistenceService };
+export { tokenPersistenceService }

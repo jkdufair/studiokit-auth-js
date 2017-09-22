@@ -41,8 +41,9 @@
 		"prettier": "^1.7.0",
 		"redux-saga": "^0.15.6"
 	},
-	"peerDependencies": {
-		"redux-saga": "^0.15.6"
+	"dependencies": {
+		"redux-saga": "^0.15.6",
+		"studiokit-net-js": "^1.0.9"
 	},
 	"lint-staged": {
 		"*.js": [

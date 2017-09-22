@@ -246,6 +246,7 @@ export default function* authSaga(
 			yield all({
 				loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
 				persistToken: call(tokenPersistenceService.persistToken, oauthToken),
+				getUserInfo: put(createAction(netActions.DATA_REQUESTED, { modelName: 'user.userInfo' })),
 				logOut: take(actions.LOG_OUT_REQUESTED)
 			})
 		} else {

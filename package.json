@@ -1,6 +1,6 @@
 {
 	"name": "studiokit-auth-js",
-	"version": "0.0.16",
+	"version": "0.0.17",
 	"scripts": {
 		"eslint-check": "eslint --print-config .eslintrc.js | eslint-config-prettier-check",
 		"lint": "eslint --ext=js ./*.js src test",
@@ -20,6 +20,9 @@
 	"main": "lib/index.js",
 	"repository": "purdue-tlt/studiokit-auth-js",
 	"license": "MIT",
+	"files": [
+		"lib"
+	],
 	"devDependencies": {
 		"babel-cli": "^6.24.1",
 		"babel-eslint": "^8.0.0",

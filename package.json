@@ -1,29 +1,54 @@
 {
 	"name": "studiokit-auth-js",
-	"version": "0.0.15",
+	"version": "0.0.16",
 	"scripts": {
+		"eslint-check": "eslint --print-config .eslintrc.js | eslint-config-prettier-check",
+		"lint": "eslint --ext=js ./*.js src test",
+		"fix": "npm run lint -- --fix",
+		"test": "BABEL_ENV=test jest",
+		"test:watch": "BABEL_ENV=test jest --watch",
+		"coverage": "BABEL_ENV=test jest --coverage",
+		"coveralls": "npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
 		"build": "babel src -d lib",
-		"build:watch": "babel src --watch -d lib"
+		"build:watch": "babel src --watch -d lib",
+		"precommit": "lint-staged",
+		"pretest": "npm run build",
+		"prepush": "npm run test",
+		"prepublish": "npm run test"
 	},
 	"description": "Authentication flow for Studio apps at Purdue",
 	"main": "lib/index.js",
-	"author": "Jason Dufair <jase@purdue.edu>",
 	"repository": "purdue-tlt/studiokit-auth-js",
 	"license": "MIT",
 	"devDependencies": {
 		"babel-cli": "^6.24.1",
-		"chai": "^3.5.0",
-		"eslint": "^3.19.0",
-		"eslint-plugin-redux-saga": "^0.3.0",
+		"babel-eslint": "^8.0.0",
+		"babel-plugin-transform-runtime": "^6.23.0",
+		"babel-preset-env": "^1.6.0",
+		"babel-runtime": "^6.26.0",
+		"coveralls": "^2.13.1",
+		"eslint": "^4.7.2",
+		"eslint-config-prettier": "^2.5.0",
+		"eslint-config-studiokit": "^0.1.0",
+		"eslint-plugin-prettier": "^2.3.1",
+		"eslint-plugin-redux-saga": "^0.5.0",
 		"fetch-mock": "^5.10.0",
+		"husky": "^0.14.3",
 		"immutable": "^3.8.1",
 		"isomorphic-fetch": "^2.2.1",
-		"mocha": "^3.3.0"
+		"jest": "^21.1.0",
+		"lint-staged": "^4.2.2",
+		"prettier": "^1.7.0",
+		"redux-saga": "^0.15.6"
 	},
 	"dependencies": {
-		"babel-plugin-transform-runtime": "^6.23.0",
-		"babel-preset-env": "^1.4.0",
-		"babel-runtime": "^6.23.0",
-		"redux-saga": "^0.15.1"
+		"redux-saga": "^0.15.6",
+		"studiokit-net-js": "^1.0.9"
+	},
+	"lint-staged": {
+		"*.js": [
+			"eslint --fix",
+			"git add"
+		]
 	}
 }

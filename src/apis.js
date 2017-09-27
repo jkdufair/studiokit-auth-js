@@ -1,4 +1,4 @@
-const apis = {
+export default {
 	codeFromTicket: {
 		path: '/???'
 	},
@@ -6,12 +6,16 @@ const apis = {
 		path: '/api/account/local',
 		method: 'POST'
 	},
-	codeFromCasCredentials: {
+	codeFromCasV1: {
+		path: '/api/account/CasV1',
+		method: 'POST'
+	},
+	codeFromCasProxy: {
 		path: '/api/account/CasProxy',
 		method: 'POST'
 	},
 	codeFromCasTicket: {
-		path: '/api/Account/ValidatePurdueCasTicket'
+		path: '/api/Account/ValidateCasTicket'
 	},
 	getToken: {
 		path: '/token',
@@ -26,5 +30,3 @@ const apis = {
 		}
 	}
 }
-
-export default apis

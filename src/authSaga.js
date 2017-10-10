@@ -208,6 +208,7 @@ const consoleLogger = message => {
 export default function* authSaga(
 	clientCredentialsParam,
 	tokenPersistenceServiceParam = defaultTokenPersistenceService,
+	ticketProviderService,
 	loggerParam = consoleLogger
 ) {
 	if (!clientCredentialsParam) {
@@ -215,9 +216,22 @@ export default function* authSaga(
 	}
 	clientCredentials = clientCredentialsParam
 
-	tokenPersistenceService = tokenPersistenceServiceParam
-	oauthToken = yield call(tokenPersistenceService.getPersistedToken)
-	yield put(createAction(actions.AUTH_INITIALIZED))
+	// if there is a CAS ticket (normally in the URL), use it to get a token
+	if (ticketProviderService) {
+		debugger
+		const casTicket = ticketProviderService.getTicket()
+		if (casTicket) {
+			debugger
+			oauthToken = yield call(casTicketLoginFlow, casTicket)
+		}
+	}
+
+	// if that didn't work, try to get the token that is stored (normally in AsyncStorage or LocalStorage)
+	if (!oauthToken) {
+		tokenPersistenceService = tokenPersistenceServiceParam
+		oauthToken = yield call(tokenPersistenceService.getPersistedToken)
+		yield put(createAction(actions.AUTH_INITIALIZED))
+	}
 
 	logger = loggerParam
 	logger(`logger set to ${logger.name}`)
@@ -226,17 +240,9 @@ export default function* authSaga(
 
 	while (true) {
 		if (!oauthToken) {
-			const {
-				casV1Action,
-				casProxyAction,
-				casAction,
-				shibAction,
-				localAction,
-				facebookAction
-			} = yield race({
+			const { casV1Action, casProxyAction, shibAction, localAction, facebookAction } = yield race({
 				casV1Action: take(actions.CAS_V1_LOGIN_REQUESTED),
 				casProxyAction: take(actions.CAS_PROXY_LOGIN_REQUESTED),
-				casAction: take(actions.CAS_LOGIN_REQUESTED),
 				shibAction: take(actions.SHIB_LOGIN_REQUESTED),
 				localAction: take(actions.LOCAL_LOGIN_REQUESTED),
 				facebookAction: take(actions.FACEBOOK_LOGIN_REQUESTED)
@@ -247,8 +253,6 @@ export default function* authSaga(
 				oauthToken = yield call(casV1LoginFlow, casV1Action.payload)
 			} else if (casProxyAction) {
 				oauthToken = yield call(casProxyLoginFlow, casProxyAction.payload)
-			} else if (casAction) {
-				oauthToken = yield call(casTicketLoginFlow, casAction.payload)
 			} else if (shibAction) {
 				oauthToken = yield call(shibLoginFlow, shibAction.payload)
 			} else if (localAction) {

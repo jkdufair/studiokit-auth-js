@@ -1,6 +1,6 @@
 {
 	"name": "studiokit-auth-js",
-	"version": "0.0.18",
+	"version": "0.0.19",
 	"scripts": {
 		"eslint-check": "eslint --print-config .eslintrc.js | eslint-config-prettier-check",
 		"lint": "eslint --ext=js ./*.js src test",
@@ -8,7 +8,8 @@
 		"test": "BABEL_ENV=test jest",
 		"test:watch": "BABEL_ENV=test jest --watch",
 		"coverage": "BABEL_ENV=test jest --coverage",
-		"coveralls": "npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
+		"coveralls":
+			"npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
 		"build": "babel src -d lib",
 		"build:watch": "babel src --watch -d lib",
 		"precommit": "lint-staged",
@@ -20,9 +21,7 @@
 	"main": "lib/index.js",
 	"repository": "purdue-tlt/studiokit-auth-js",
 	"license": "MIT",
-	"files": [
-		"lib"
-	],
+	"files": ["lib"],
 	"devDependencies": {
 		"babel-cli": "^6.24.1",
 		"babel-eslint": "^8.0.0",
@@ -49,9 +48,6 @@
 		"studiokit-net-js": "^1.0.9"
 	},
 	"lint-staged": {
-		"*.js": [
-			"eslint --fix",
-			"git add"
-		]
+		"*.js": ["eslint --fix", "git add"]
 	}
 }

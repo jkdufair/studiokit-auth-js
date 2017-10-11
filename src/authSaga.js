@@ -216,10 +216,10 @@ export default function* authSaga(
 		throw new Error("'clientCredentials' is required for auth saga")
 	}
 	clientCredentials = clientCredentialsParam
+	tokenPersistenceService = tokenPersistenceServiceParam
 
 	// if there is a CAS ticket (normally in the URL), use it to get a token
 	if (ticketProviderService) {
-		debugger
 		const casTicket = ticketProviderService.getTicket()
 		const service = ticketProviderService.getAppServiceName()
 		if (casTicket) {
@@ -229,7 +229,6 @@ export default function* authSaga(
 	}
 
 	// if that didn't work, try to get the token that is stored (normally in AsyncStorage or LocalStorage)
-	tokenPersistenceService = tokenPersistenceServiceParam
 	if (!oauthToken) {
 		oauthToken = yield call(tokenPersistenceService.getPersistedToken)
 		yield put(createAction(actions.AUTH_INITIALIZED))

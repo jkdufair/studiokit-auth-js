@@ -123,14 +123,15 @@ function* casV1LoginFlow(credentials) {
 	return yield call(casCredentialsLoginFlow, credentials, 'codeFromCasV1')
 }
 
-function* casTicketLoginFlow(ticket) {
+function* casTicketLoginFlow(ticket, service) {
 	const getCodeModelName = 'codeFromCasTicket'
 	yield put(
 		createAction(netActions.DATA_REQUESTED, {
 			modelName: getCodeModelName,
 			noStore: true,
 			queryParams: {
-				ticket
+				ticket,
+				service
 			}
 		})
 	)
@@ -220,15 +221,16 @@ export default function* authSaga(
 	if (ticketProviderService) {
 		debugger
 		const casTicket = ticketProviderService.getTicket()
+		const service = ticketProviderService.getAppServiceName()
 		if (casTicket) {
 			debugger
-			oauthToken = yield call(casTicketLoginFlow, casTicket)
+			oauthToken = yield call(casTicketLoginFlow, casTicket, service)
 		}
 	}
 
 	// if that didn't work, try to get the token that is stored (normally in AsyncStorage or LocalStorage)
+	tokenPersistenceService = tokenPersistenceServiceParam
 	if (!oauthToken) {
-		tokenPersistenceService = tokenPersistenceServiceParam
 		oauthToken = yield call(tokenPersistenceService.getPersistedToken)
 		yield put(createAction(actions.AUTH_INITIALIZED))
 	}

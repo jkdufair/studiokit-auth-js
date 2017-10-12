@@ -218,20 +218,18 @@ export default function* authSaga(
 	clientCredentials = clientCredentialsParam
 	tokenPersistenceService = tokenPersistenceServiceParam
 
-	// if there is a CAS ticket (normally in the URL), use it to get a token
-	if (ticketProviderService) {
+	// Try to get the token that is stored (normally in AsyncStorage or LocalStorage)
+	oauthToken = yield call(tokenPersistenceService.getPersistedToken)
+
+	// If that didn't work and if there is a CAS ticket (normally in the URL), use it to get a token
+	if (!oauthToken && ticketProviderService) {
 		const casTicket = ticketProviderService.getTicket()
 		const service = ticketProviderService.getAppServiceName()
-		if (casTicket) {
+		if (casTicket && service) {
 			oauthToken = yield call(casTicketLoginFlow, casTicket, service)
 		}
 	}
-
-	// if that didn't work, try to get the token that is stored (normally in AsyncStorage or LocalStorage)
-	if (!oauthToken) {
-		oauthToken = yield call(tokenPersistenceService.getPersistedToken)
-		yield put(createAction(actions.AUTH_INITIALIZED))
-	}
+	yield put(createAction(actions.AUTH_INITIALIZED))
 
 	logger = loggerParam
 	logger(`logger set to ${logger.name}`)

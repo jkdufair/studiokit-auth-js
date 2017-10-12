@@ -223,7 +223,6 @@ export default function* authSaga(
 		const casTicket = ticketProviderService.getTicket()
 		const service = ticketProviderService.getAppServiceName()
 		if (casTicket) {
-			debugger
 			oauthToken = yield call(casTicketLoginFlow, casTicket, service)
 		}
 	}

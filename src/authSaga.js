@@ -1,15 +1,50 @@
+// @flow
+
 import { call, put, race, take, takeEvery, all } from 'redux-saga/effects'
 import { actions as netActions } from 'studiokit-net-js'
-import actions, { createAction } from './actions'
-import { tokenPersistenceService as defaultTokenPersistenceService } from './services'
 
-let clientCredentials, oauthToken
-let logger
-let tokenPersistenceService
-let refreshLock
+import type {
+	OAuthToken,
+	ClientCredentials,
+	Credentials,
+	LoggerFunction,
+	TokenPersistenceService,
+	TicketProviderService,
+	CodeProviderService
+} from './types'
+import actions, { createAction } from './actions'
+import {
+	tokenPersistenceService as defaultTokenPersistenceService,
+	ticketProviderService as defaultTicketProviderService,
+	codeProviderService as defaultCodeProviderService
+} from './services'
+
+//#region Helpers
+
+/**
+ * A default logger function that logs to the console. Used if no other logger is provided
+ * 
+ * @param {string} message - The message to log
+ */
+const defaultLogger: LoggerFunction = (message: string) => {
+	console.debug(message)
+}
+
+//#endregion Helpers
+
+//#region Local Variables
+
+let clientCredentials: ClientCredentials
+let oauthToken: ?OAuthToken
+let logger: LoggerFunction
+let tokenPersistenceService: TokenPersistenceService
+let refreshLock: boolean
+
+//#endregion Local Variables
 
 // TODO: ...data.Code || ...data.code is because Forecast uses capitalized property names. Needs fixing
-function* getTokenFromCode(code) {
+
+function* getTokenFromCode(code: string): Generator<*, ?OAuthToken, *> {
 	const getTokenModelName = 'getToken'
 	// Manually creating form-url-encoded body here because NOTHING else uses this content-type
 	// but the OAuth spec requires it
@@ -35,7 +70,7 @@ function* getTokenFromCode(code) {
 	return tokenFetchResultAction.data.error ? null : tokenFetchResultAction.data
 }
 
-function* getTokenFromRefreshToken(oauthToken) {
+function* getTokenFromRefreshToken(oauthToken: OAuthToken): Generator<*, ?OAuthToken, *> {
 	const getTokenModelName = 'getToken'
 	// Manually creating form-url-encoded body here because NOTHING else uses this content-type
 	// but the OAuth spec requires it
@@ -72,7 +107,7 @@ function* getTokenFromRefreshToken(oauthToken) {
 	}
 }
 
-function* performTokenRefresh() {
+function* performTokenRefresh(): Generator<*, void, *> {
 	logger('Refreshing OAuth token')
 	if (refreshLock) return
 	refreshLock = true
@@ -87,7 +122,10 @@ function* performTokenRefresh() {
 	logger('OAuth token refreshed')
 }
 
-function* casCredentialsLoginFlow(credentials, modelName) {
+function* casCredentialsLoginFlow(
+	credentials: Credentials,
+	modelName: string
+): Generator<*, ?OAuthToken, *> {
 	yield put(
 		createAction(netActions.DATA_REQUESTED, {
 			modelName: modelName,
@@ -115,15 +153,15 @@ function* casCredentialsLoginFlow(credentials, modelName) {
 	return yield getTokenFromCode(code)
 }
 
-function* casProxyLoginFlow(credentials) {
+function* casProxyLoginFlow(credentials: Credentials): Generator<*, ?OAuthToken, *> {
 	return yield call(casCredentialsLoginFlow, credentials, 'codeFromCasProxy')
 }
 
-function* casV1LoginFlow(credentials) {
+function* casV1LoginFlow(credentials: Credentials): Generator<*, ?OAuthToken, *> {
 	return yield call(casCredentialsLoginFlow, credentials, 'codeFromCasV1')
 }
 
-function* casTicketLoginFlow(ticket, service) {
+function* casTicketLoginFlow(ticket: string, service: string): Generator<*, ?OAuthToken, *> {
 	const getCodeModelName = 'codeFromCasTicket'
 	yield put(
 		createAction(netActions.DATA_REQUESTED, {
@@ -147,12 +185,7 @@ function* casTicketLoginFlow(ticket, service) {
 	return yield getTokenFromCode(code)
 }
 
-function* shibLoginFlow() {
-	// code -> token
-	return 'tokenViaShib'
-}
-
-function* localLoginFlow(credentials) {
+function* localLoginFlow(credentials: Credentials): Generator<*, ?OAuthToken, *> {
 	// credentials -> code -> token
 	const getCodeModelName = 'codeFromLocalCredentials'
 	yield put(
@@ -178,12 +211,7 @@ function* localLoginFlow(credentials) {
 	return yield getTokenFromCode(code)
 }
 
-function* facebookLoginFlow(payload) {
-	// ???
-	return 'noFreakingClue'
-}
-
-function* handleAuthFailure(action) {
+function* handleAuthFailure(action): Generator<*, *, *> {
 	// This should be unlikely since we normally have a refresh token loop happening
 	// but if the app is backgrounded, the loop might not be caught up yet
 	if (
@@ -197,31 +225,42 @@ function* handleAuthFailure(action) {
 	}
 }
 
-/**
- * A default logger function that logs to the console. Used if no other logger is provided
- * 
- * @param {string} message - The message to log
- */
-const consoleLogger = message => {
-	console.debug(message)
+export function* getOauthToken(modelName: string): Generator<*, ?OAuthToken, *> {
+	// Don't try to refresh the token if we're already in a request to refresh the token
+	if (modelName === 'getToken') {
+		return null
+	}
+	if (oauthToken && oauthToken['.expires']) {
+		let currentTime = new Date()
+		currentTime.setSeconds(currentTime.getSeconds() - 30)
+		if (new Date(oauthToken['.expires']) < currentTime) {
+			// start a token refresh and wait for the success action in case another refresh is currently happening
+			yield all([call(performTokenRefresh), take(actions.TOKEN_REFRESH_SUCCEEDED)])
+			return oauthToken
+		}
+	}
+	return oauthToken
 }
 
 export default function* authSaga(
-	clientCredentialsParam,
-	tokenPersistenceServiceParam = defaultTokenPersistenceService,
-	ticketProviderService,
-	loggerParam = consoleLogger
-) {
+	clientCredentialsParam: ClientCredentials,
+	tokenPersistenceServiceParam: TokenPersistenceService = defaultTokenPersistenceService,
+	ticketProviderService: TicketProviderService = defaultTicketProviderService,
+	codeProviderService: CodeProviderService = defaultCodeProviderService,
+	loggerParam: LoggerFunction = defaultLogger
+): Generator<*, void, *> {
 	if (!clientCredentialsParam) {
 		throw new Error("'clientCredentials' is required for auth saga")
 	}
 	clientCredentials = clientCredentialsParam
 	tokenPersistenceService = tokenPersistenceServiceParam
+	logger = loggerParam
+	logger(`logger set to ${logger.name}`)
 
-	// Try to get the token that is stored (normally in AsyncStorage or LocalStorage)
+	// Try to get persisted token (normally in AsyncStorage or LocalStorage)
 	oauthToken = yield call(tokenPersistenceService.getPersistedToken)
 
-	// If that didn't work and if there is a CAS ticket (normally in the URL), use it to get a token
+	// If no token, try to get CAS ticket (normally in the URL), use it to get a token
 	if (!oauthToken && ticketProviderService) {
 		const casTicket = ticketProviderService.getTicket()
 		ticketProviderService.removeTicket()
@@ -230,21 +269,27 @@ export default function* authSaga(
 			oauthToken = yield call(casTicketLoginFlow, casTicket, service)
 		}
 	}
-	yield put(createAction(actions.AUTH_INITIALIZED))
 
-	logger = loggerParam
-	logger(`logger set to ${logger.name}`)
+	// If no token, try to get OAuth Code (normally in the URL), use it to get a token
+	// e.g. Shibboleth, Facebook, Google
+	if (!oauthToken && codeProviderService) {
+		const code = codeProviderService.getCode()
+		codeProviderService.removeCode()
+		if (code) {
+			oauthToken = yield call(getTokenFromCode, code)
+		}
+	}
+
+	yield put(createAction(actions.AUTH_INITIALIZED))
 
 	yield takeEvery(netActions.FETCH_TRY_FAILED, handleAuthFailure)
 
 	while (true) {
 		if (!oauthToken) {
-			const { casV1Action, casProxyAction, shibAction, localAction, facebookAction } = yield race({
+			const { casV1Action, casProxyAction, localAction } = yield race({
 				casV1Action: take(actions.CAS_V1_LOGIN_REQUESTED),
 				casProxyAction: take(actions.CAS_PROXY_LOGIN_REQUESTED),
-				shibAction: take(actions.SHIB_LOGIN_REQUESTED),
-				localAction: take(actions.LOCAL_LOGIN_REQUESTED),
-				facebookAction: take(actions.FACEBOOK_LOGIN_REQUESTED)
+				localAction: take(actions.LOCAL_LOGIN_REQUESTED)
 			})
 
 			yield put(createAction(actions.LOGIN_REQUESTED))
@@ -252,12 +297,8 @@ export default function* authSaga(
 				oauthToken = yield call(casV1LoginFlow, casV1Action.payload)
 			} else if (casProxyAction) {
 				oauthToken = yield call(casProxyLoginFlow, casProxyAction.payload)
-			} else if (shibAction) {
-				oauthToken = yield call(shibLoginFlow, shibAction.payload)
 			} else if (localAction) {
 				oauthToken = yield call(localLoginFlow, localAction.payload)
-			} else if (facebookAction) {
-				oauthToken = yield call(facebookLoginFlow, facebookAction.payload)
 			}
 		}
 
@@ -278,21 +319,4 @@ export default function* authSaga(
 		})
 		oauthToken = null
 	}
-}
-
-export function* getOauthToken(modelName) {
-	//Don't try to refresh the token if we're already in a request to refresh the token
-	if (modelName === 'getToken') {
-		return null
-	}
-	if (oauthToken && oauthToken['.expires']) {
-		let currentTime = new Date()
-		currentTime.setSeconds(currentTime.getSeconds() - 30)
-		if (new Date(oauthToken['.expires']) < currentTime) {
-			//start a token refresh and wait for the success action in case another refresh is currently happening
-			yield all([call(performTokenRefresh), take(actions.TOKEN_REFRESH_SUCCEEDED)])
-			return oauthToken
-		}
-	}
-	return oauthToken
 }

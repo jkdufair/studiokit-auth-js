@@ -1,6 +1,10 @@
+// @flow
+
+import type { TokenPersistenceService, TicketProviderService, CodeProviderService } from './types'
+
 let storedToken
 
-const tokenPersistenceService = {
+const tokenPersistenceService: TokenPersistenceService = {
 	getPersistedToken: () => {
 		return storedToken
 	},
@@ -10,4 +14,15 @@ const tokenPersistenceService = {
 	}
 }
 
-export { tokenPersistenceService }
+const ticketProviderService: TicketProviderService = {
+	getTicket: () => null,
+	getAppServiceName: () => null,
+	removeTicket: () => {}
+}
+
+const codeProviderService: CodeProviderService = {
+	getCode: () => null,
+	removeCode: () => {}
+}
+
+export { tokenPersistenceService, ticketProviderService, codeProviderService }

@@ -1,11 +1,24 @@
 {
-	"presets": ["env"],
+	"presets": [
+		"env"
+	],
+	"env": {
+		"test": {
+			"plugins": [
+				"rewire"
+			]
+		}
+	},
 	"plugins": [
-		["transform-runtime", {
-			"helpers": false,
-			"polyfill": false,
-			"regenerator": true,
-			"moduleName": "babel-runtime"
-		}]
+		"transform-flow-strip-types",
+		[
+			"transform-runtime",
+			{
+				"helpers": false,
+				"polyfill": false,
+				"regenerator": true,
+				"moduleName": "babel-runtime"
+			}
+		]
 	]
 }

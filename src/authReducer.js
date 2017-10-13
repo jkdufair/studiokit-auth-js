@@ -1,6 +1,7 @@
 import actions from './actions'
 
 const initialState = {
+	isInitialized: false,
 	isAuthenticating: false,
 	isAuthenticated: false,
 	didFail: false
@@ -36,6 +37,9 @@ export default function authReducer(state = initialState, action) {
 				isAuthenticated: false,
 				didFail: true
 			})
+
+		case actions.AUTH_INITIALIZED:
+			return Object.assign({}, state, { isInitialized: true })
 
 		default:
 			return state

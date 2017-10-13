@@ -224,6 +224,7 @@ export default function* authSaga(
 	// If that didn't work and if there is a CAS ticket (normally in the URL), use it to get a token
 	if (!oauthToken && ticketProviderService) {
 		const casTicket = ticketProviderService.getTicket()
+		ticketProviderService.removeTicket()
 		const service = ticketProviderService.getAppServiceName()
 		if (casTicket && service) {
 			oauthToken = yield call(casTicketLoginFlow, casTicket, service)

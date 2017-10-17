@@ -250,7 +250,7 @@ export default function* authSaga(
 	loggerParam: LoggerFunction = defaultLogger
 ): Generator<*, void, *> {
 	if (!clientCredentialsParam) {
-		throw new Error("'clientCredentials' is required for auth saga")
+		throw new Error("'clientCredentialsParam' is required for authSaga")
 	}
 	clientCredentials = clientCredentialsParam
 	tokenPersistenceService = tokenPersistenceServiceParam
@@ -261,7 +261,7 @@ export default function* authSaga(
 	oauthToken = yield call(tokenPersistenceService.getPersistedToken)
 
 	// If no token, try to get CAS ticket (normally in the URL), use it to get a token
-	if (!oauthToken && ticketProviderService) {
+	if (!oauthToken) {
 		const casTicket = ticketProviderService.getTicket()
 		ticketProviderService.removeTicket()
 		const service = ticketProviderService.getAppServiceName()
@@ -272,7 +272,7 @@ export default function* authSaga(
 
 	// If no token, try to get OAuth Code (normally in the URL), use it to get a token
 	// e.g. Shibboleth, Facebook, Google
-	if (!oauthToken && codeProviderService) {
+	if (!oauthToken) {
 		const code = codeProviderService.getCode()
 		codeProviderService.removeCode()
 		if (code) {

@@ -30,6 +30,18 @@ const defaultLogger: LoggerFunction = (message: string) => {
 	console.debug(message)
 }
 
+const matchesModelFetchReceived = (action, modelName) =>
+	action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === modelName
+
+const takeMatchesModelFetchReceived = modelName => incomingAction =>
+	matchesModelFetchReceived(incomingAction, modelName)
+
+const matchesModelFetchFailed = (action, modelName) =>
+	action.type === netActions.FETCH_FAILED && action.modelName === modelName
+
+const takeMatchesModelFetchFailed = modelName => incomingAction =>
+	matchesModelFetchFailed(incomingAction, modelName)
+
 //#endregion Helpers
 
 //#region Local Variables
@@ -62,12 +74,14 @@ function* getTokenFromCode(code: string): Generator<*, ?OAuthToken, *> {
 			noStore: true
 		})
 	)
-	const tokenFetchResultAction = yield take(
-		action =>
-			action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
-			action.modelName === getTokenModelName
-	)
-	return tokenFetchResultAction.data.error ? null : tokenFetchResultAction.data
+	const { fetchReceived, fetchFailed } = yield race({
+		fetchReceived: take(takeMatchesModelFetchReceived(getTokenModelName)),
+		fetchFailed: take(takeMatchesModelFetchFailed(getTokenModelName))
+	})
+	if (fetchFailed || !fetchReceived.data || fetchReceived.data.error) {
+		return null
+	}
+	return fetchReceived.data
 }
 
 function* getTokenFromRefreshToken(oauthToken: OAuthToken): Generator<*, ?OAuthToken, *> {
@@ -90,26 +104,24 @@ function* getTokenFromRefreshToken(oauthToken: OAuthToken): Generator<*, ?OAuthT
 			timeLimit: 60000
 		})
 	)
-	const tokenFetchResultAction = yield take(
-		action =>
-			action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
-			action.modelName === getTokenModelName
-	)
-	if (tokenFetchResultAction.data.error) {
+	const { fetchReceived, fetchFailed } = yield race({
+		fetchReceived: take(takeMatchesModelFetchReceived(getTokenModelName)),
+		fetchFailed: take(takeMatchesModelFetchFailed(getTokenModelName))
+	})
+	if (fetchFailed || !fetchReceived.data || fetchReceived.data.error) {
 		// This should never happen outside of the token having been revoked on the server side
 		yield all({
 			logOut: put(createAction(actions.LOG_OUT_REQUESTED)),
 			signalRefreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED))
 		})
 		return null
-	} else {
-		return tokenFetchResultAction.data
 	}
+	return fetchReceived.data
 }
 
 function* performTokenRefresh(): Generator<*, void, *> {
-	logger('Refreshing OAuth token')
 	if (refreshLock) return
+	logger('Refreshing OAuth token')
 	refreshLock = true
 	oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
 	yield all({
@@ -122,93 +134,67 @@ function* performTokenRefresh(): Generator<*, void, *> {
 	logger('OAuth token refreshed')
 }
 
-function* casCredentialsLoginFlow(
-	credentials: Credentials,
-	modelName: string
-): Generator<*, ?OAuthToken, *> {
-	yield put(
-		createAction(netActions.DATA_REQUESTED, {
-			modelName: modelName,
-			body: credentials,
-			noStore: true,
-			timeLimit: 120000
-		})
-	)
-	const { resultReceived, loginFailed } = yield race({
-		resultReceived: take(
-			action =>
-				action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === modelName
-		),
-		loginFailed: take(
-			action => action.type === netActions.FETCH_FAILED && action.modelName === modelName
-		)
+function* loginFlow(actionPayload: Object, modelName: string): Generator<*, ?OAuthToken, *> {
+	yield put(createAction(netActions.DATA_REQUESTED, actionPayload))
+	const { fetchReceived, fetchFailed } = yield race({
+		fetchReceived: take(takeMatchesModelFetchReceived(modelName)),
+		fetchFailed: take(takeMatchesModelFetchFailed(modelName))
 	})
-	if (loginFailed) {
+	if (fetchFailed) {
 		return null
 	}
-	const code = resultReceived.data.Code || resultReceived.data.code
+	let code
+	if (fetchReceived.data && (fetchReceived.data.Code || fetchReceived.data.code)) {
+		code = fetchReceived.data.Code || fetchReceived.data.code
+	}
 	if (!code) {
 		return null
 	}
-	return yield getTokenFromCode(code)
+	return yield call(getTokenFromCode, code)
+}
+
+function* credentialsLoginFlow(
+	credentials: Credentials,
+	modelName: string
+): Generator<*, ?OAuthToken, *> {
+	return yield call(
+		loginFlow,
+		{
+			modelName: modelName,
+			noStore: true,
+			body: credentials,
+			timeLimit: 120000
+		},
+		modelName
+	)
 }
 
 function* casProxyLoginFlow(credentials: Credentials): Generator<*, ?OAuthToken, *> {
-	return yield call(casCredentialsLoginFlow, credentials, 'codeFromCasProxy')
+	return yield call(credentialsLoginFlow, credentials, 'codeFromCasProxy')
 }
 
 function* casV1LoginFlow(credentials: Credentials): Generator<*, ?OAuthToken, *> {
-	return yield call(casCredentialsLoginFlow, credentials, 'codeFromCasV1')
+	return yield call(credentialsLoginFlow, credentials, 'codeFromCasV1')
+}
+
+function* localLoginFlow(credentials: Credentials): Generator<*, ?OAuthToken, *> {
+	return yield call(credentialsLoginFlow, credentials, 'codeFromLocalCredentials')
 }
 
 function* casTicketLoginFlow(ticket: string, service: string): Generator<*, ?OAuthToken, *> {
-	const getCodeModelName = 'codeFromCasTicket'
-	yield put(
-		createAction(netActions.DATA_REQUESTED, {
-			modelName: getCodeModelName,
+	const modelName = 'codeFromCasTicket'
+	return yield call(
+		loginFlow,
+		{
+			modelName: modelName,
 			noStore: true,
 			queryParams: {
 				ticket,
 				service
 			}
-		})
+		},
+		modelName
 	)
-	const action = yield take(
-		action =>
-			action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
-			action.modelName === getCodeModelName
-	)
-	const code = action.data.Code || action.data.code
-	if (!code) {
-		return null
-	}
-	return yield getTokenFromCode(code)
-}
-
-function* localLoginFlow(credentials: Credentials): Generator<*, ?OAuthToken, *> {
-	// credentials -> code -> token
-	const getCodeModelName = 'codeFromLocalCredentials'
-	yield put(
-		createAction(netActions.DATA_REQUESTED, {
-			modelName: getCodeModelName,
-			body: credentials,
-			noStore: true
-		})
-	)
-	const action = yield take(
-		action =>
-			(action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED ||
-				action.type === netActions.FETCH_FAILED) &&
-			action.modelName === getCodeModelName
-	)
-	let code
-	if (action.data && (action.data.Code || action.data.code)) {
-		code = action.data.Code || action.data.code
-	}
-	if (!code) {
-		return null
-	}
-	return yield getTokenFromCode(code)
 }
 
 function* handleAuthFailure(action): Generator<*, *, *> {
@@ -231,9 +217,9 @@ export function* getOauthToken(modelName: string): Generator<*, ?OAuthToken, *> 
 		return null
 	}
 	if (oauthToken && oauthToken['.expires']) {
-		let currentTime = new Date()
-		currentTime.setSeconds(currentTime.getSeconds() - 30)
-		if (new Date(oauthToken['.expires']) < currentTime) {
+		let thirtySecondsFromNow = new Date()
+		thirtySecondsFromNow.setSeconds(thirtySecondsFromNow.getSeconds() + 30)
+		if (new Date(oauthToken['.expires']) < thirtySecondsFromNow) {
 			// start a token refresh and wait for the success action in case another refresh is currently happening
 			yield all([call(performTokenRefresh), take(actions.TOKEN_REFRESH_SUCCEEDED)])
 			return oauthToken

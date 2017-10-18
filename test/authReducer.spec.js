@@ -14,6 +14,16 @@ describe('authReducer', () => {
 			const state = authReducer(initialState, { type: 'FOOBAR', modelName: 'test' })
 			expect(state).toEqual(initialState)
 		})
+
+		test('no state parameter passed', () => {
+			const state = authReducer(undefined, { type: actions.AUTH_INITIALIZED })
+			expect(state).toEqual({
+				isInitialized: true,
+				isAuthenticating: false,
+				isAuthenticated: false,
+				didFail: false
+			})
+		})
 	})
 
 	describe('GET_TOKEN_SUCCEEDED', () => {

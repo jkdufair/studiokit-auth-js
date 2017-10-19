@@ -1,21 +1,7 @@
-import actions, { createAction } from '../src/actions'
-import { delay } from 'redux-saga'
-import {
-	call,
-	cancel,
-	cancelled,
-	take,
-	takeEvery,
-	takeLatest,
-	fork,
-	put,
-	race,
-	select,
-	all
-} from 'redux-saga/effects'
-import { createMockTask } from 'redux-saga/utils'
+import { call, take, takeEvery, put, race, all } from 'redux-saga/effects'
 import { actions as netActions } from 'studiokit-net-js'
 
+import actions, { createAction } from '../src/actions'
 import {
 	tokenPersistenceService as defaultTokenPersistenceService,
 	ticketProviderService as defaultTicketProviderService,

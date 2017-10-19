@@ -99,7 +99,6 @@ function* getTokenFromRefreshToken(oauthToken: OAuthToken): Generator<*, ?OAuthT
 		createAction(netActions.DATA_REQUESTED, {
 			modelName: getTokenModelName,
 			body: formBodyString,
-			noAuth: true,
 			noStore: true,
 			timeLimit: 60000
 		})

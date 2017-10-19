@@ -244,7 +244,6 @@ describe('getTokenFromRefreshToken', () => {
 					modelName: 'getToken',
 					body:
 						'grant_type=refresh_token&client_id=test&client_secret=secret&refresh_token=some-refresh-token',
-					noAuth: true,
 					noStore: true,
 					timeLimit: 60000
 				})

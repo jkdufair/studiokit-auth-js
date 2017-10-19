@@ -99,7 +99,7 @@ auth: {
 
 ## Initialization
 
-You can use the `AUTH_INITIALIZED` action to signal when the `authSaga` has completed initialization and handled one of the following cases:
+The `AUTH_INITIALIZED` signal is sent when the `authSaga` has completed initialization and handled one of the following cases:
 
 1. Loaded a saved token using the `tokenPersistenceService`
 2. Exchanged a `ticket` for a token

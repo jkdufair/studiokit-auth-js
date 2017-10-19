@@ -108,11 +108,6 @@ function* getTokenFromRefreshToken(oauthToken: OAuthToken): Generator<*, ?OAuthT
 		fetchFailed: take(takeMatchesModelFetchFailed(getTokenModelName))
 	})
 	if (fetchFailed || !fetchReceived.data || fetchReceived.data.error) {
-		// This should never happen outside of the token having been revoked on the server side
-		yield all({
-			logOut: put(createAction(actions.LOG_OUT_REQUESTED)),
-			signalRefreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED))
-		})
 		return null
 	}
 	return fetchReceived.data
@@ -123,14 +118,23 @@ function* performTokenRefresh(): Generator<*, void, *> {
 	logger('Refreshing OAuth token')
 	refreshLock = true
 	oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
-	yield all({
-		sendTokenForIntercept: put(
-			createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: oauthToken })
-		),
-		persistToken: call(tokenPersistenceService.persistToken, oauthToken)
-	})
+	if (oauthToken) {
+		logger('OAuth token refreshed')
+		yield all({
+			refreshSuccess: put(
+				createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: oauthToken })
+			),
+			persistToken: call(tokenPersistenceService.persistToken, oauthToken)
+		})
+	} else {
+		logger('OAuth token failed to refresh')
+		// This should never happen outside of the token having been revoked on the server side
+		yield all({
+			refreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED)),
+			logOut: put(createAction(actions.LOG_OUT_REQUESTED))
+		})
+	}
 	refreshLock = false
-	logger('OAuth token refreshed')
 }
 
 function* loginFlow(actionPayload: Object, modelName: string): Generator<*, ?OAuthToken, *> {
@@ -220,8 +224,15 @@ export function* getOauthToken(modelName: string): Generator<*, ?OAuthToken, *> 
 		thirtySecondsFromNow.setSeconds(thirtySecondsFromNow.getSeconds() + 30)
 		if (new Date(oauthToken['.expires']) < thirtySecondsFromNow) {
 			// start a token refresh and wait for the success action in case another refresh is currently happening
-			yield all([call(performTokenRefresh), take(actions.TOKEN_REFRESH_SUCCEEDED)])
-			return oauthToken
+			yield call(performTokenRefresh)
+			const { refreshSuccess, refreshFailed } = yield race({
+				refreshSuccess: take(actions.TOKEN_REFRESH_SUCCEEDED),
+				refreshFailed: take(actions.TOKEN_REFRESH_FAILED)
+			})
+			if (refreshSuccess) {
+				return oauthToken
+			}
+			return null
 		}
 	}
 	return oauthToken

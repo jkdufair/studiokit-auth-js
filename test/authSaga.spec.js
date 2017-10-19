@@ -251,7 +251,7 @@ describe('getTokenFromRefreshToken', () => {
 		)
 	})
 
-	test('should signal logout, return null, and finish if fetch fails', () => {
+	test('should return null and finish if fetch fails', () => {
 		const gen = getTokenFromRefreshToken({
 			access_token: 'some-access-token',
 			refresh_token: 'some-refresh-token'
@@ -261,19 +261,12 @@ describe('getTokenFromRefreshToken', () => {
 		const fetchFailedEffect = gen.next({
 			fetchFailed: {}
 		})
-		expect(fetchFailedEffect.value).toEqual(
-			all({
-				logOut: put(createAction(actions.LOG_OUT_REQUESTED)),
-				signalRefreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED))
-			})
-		)
-		const allLogoutEffect = gen.next()
-		expect(allLogoutEffect.value).toEqual(null)
+		expect(fetchFailedEffect.value).toEqual(null)
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
 	})
 
-	test('should signal logout, return null, and finish if fetch returns no data', () => {
+	test('should return null and finish if fetch returns no data', () => {
 		const gen = getTokenFromRefreshToken({
 			access_token: 'some-access-token',
 			refresh_token: 'some-refresh-token'
@@ -283,19 +276,12 @@ describe('getTokenFromRefreshToken', () => {
 		const fetchReceivedEffect = gen.next({
 			fetchReceived: {}
 		})
-		expect(fetchReceivedEffect.value).toEqual(
-			all({
-				logOut: put(createAction(actions.LOG_OUT_REQUESTED)),
-				signalRefreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED))
-			})
-		)
-		const allLogoutEffect = gen.next()
-		expect(allLogoutEffect.value).toEqual(null)
+		expect(fetchReceivedEffect.value).toEqual(null)
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
 	})
 
-	test('should signal logout, return null, and finish if fetch returns and error', () => {
+	test('should return null and finish if fetch returns and error', () => {
 		const gen = getTokenFromRefreshToken({
 			access_token: 'some-access-token',
 			refresh_token: 'some-refresh-token'
@@ -309,14 +295,7 @@ describe('getTokenFromRefreshToken', () => {
 				}
 			}
 		})
-		expect(fetchReceivedEffect.value).toEqual(
-			all({
-				logOut: put(createAction(actions.LOG_OUT_REQUESTED)),
-				signalRefreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED))
-			})
-		)
-		const allLogoutEffect = gen.next()
-		expect(allLogoutEffect.value).toEqual(null)
+		expect(fetchReceivedEffect.value).toEqual(null)
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
 	})
@@ -363,7 +342,7 @@ describe('performTokenRefresh', () => {
 		expect(callGetTokenFromRefreshTokenEffect.value).toEqual(
 			call(getTokenFromRefreshToken, oauthToken)
 		)
-		const allRefreshActions = gen.next(oauthToken)
+		const allSuccessActions = gen.next(oauthToken)
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
 	})
@@ -378,7 +357,7 @@ describe('performTokenRefresh', () => {
 		expect(consoleOutput).toEqual(null)
 		expect(sagaDone2.done).toEqual(true)
 
-		const allRefreshActions = gen.next(oauthToken)
+		const allSuccessActions = gen.next(oauthToken)
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
 	})
@@ -396,7 +375,7 @@ describe('performTokenRefresh', () => {
 		expect(sagaDone2.done).toEqual(true)
 
 		// first refresh - finish
-		const allRefreshActions = gen.next(oauthToken)
+		const allSuccessActions = gen.next(oauthToken)
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
 
@@ -413,19 +392,34 @@ describe('performTokenRefresh', () => {
 		expect(callGetTokenFromRefreshTokenEffect3.value).toEqual(
 			call(getTokenFromRefreshToken, oauthToken)
 		)
-		const allRefreshActions3 = gen3.next(oauthToken)
+		const allSuccessActions3 = gen3.next(oauthToken)
 		const sagaDone3 = gen3.next()
 		expect(sagaDone3.done).toEqual(true)
 	})
 
-	test('should call all refresh actions', () => {
+	test('should call all success actions if refresh succeeds', () => {
 		const gen = performTokenRefresh()
 		const callGetTokenFromRefreshTokenEffect = gen.next()
-		const allRefreshActions = gen.next(oauthToken)
-		expect(allRefreshActions.value).toEqual(
+		const allSuccessActions = gen.next(oauthToken)
+		expect(allSuccessActions.value).toEqual(
 			all({
-				sendTokenForIntercept: put(createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken })),
+				refreshSuccess: put(createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken })),
 				persistToken: call(defaultTokenPersistenceService.persistToken, oauthToken)
+			})
+		)
+		const sagaDone = gen.next()
+		expect(sagaDone.done).toEqual(true)
+	})
+
+	test('should call all failure actions if refresh fails', () => {
+		const gen = performTokenRefresh()
+		const callGetTokenFromRefreshTokenEffect = gen.next()
+		const allFailureActions = gen.next(null)
+		expect(consoleOutput).toEqual('OAuth token failed to refresh')
+		expect(allFailureActions.value).toEqual(
+			all({
+				refreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED)),
+				logOut: put(createAction(actions.LOG_OUT_REQUESTED))
 			})
 		)
 		const sagaDone = gen.next()
@@ -761,10 +755,8 @@ describe('getOauthToken', () => {
 		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
 
 		const gen = getOauthToken('someModelName')
-		const allRefreshEffect = gen.next()
-		expect(allRefreshEffect.value).toEqual(
-			all([call(performTokenRefresh), take(actions.TOKEN_REFRESH_SUCCEEDED)])
-		)
+		const callPerformRefreshEffect = gen.next()
+		expect(callPerformRefreshEffect.value).toEqual(call(performTokenRefresh))
 	})
 
 	test('should trigger refresh of oauthToken if has ".expires" and is within 30 seconds of expiration', () => {
@@ -779,13 +771,11 @@ describe('getOauthToken', () => {
 		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
 
 		const gen = getOauthToken('someModelName')
-		const allRefreshEffect = gen.next()
-		expect(allRefreshEffect.value).toEqual(
-			all([call(performTokenRefresh), take(actions.TOKEN_REFRESH_SUCCEEDED)])
-		)
+		const callPerformRefreshEffect = gen.next()
+		expect(callPerformRefreshEffect.value).toEqual(call(performTokenRefresh))
 	})
 
-	test('should return oauthToken after performing a refresh', () => {
+	test('should return race effect for refresh of oauthToken', () => {
 		let almostExpiredDate = new Date()
 		almostExpiredDate.setSeconds(almostExpiredDate.getSeconds() + 15)
 		const oauthToken = {
@@ -797,9 +787,56 @@ describe('getOauthToken', () => {
 		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
 
 		const gen = getOauthToken('someModelName')
-		const allRefreshEffect = gen.next()
-		const tokenEffect = gen.next()
-		expect(tokenEffect.value).toEqual(oauthToken)
+		const callPerformRefreshEffect = gen.next()
+		const raceRefreshResultEffect = gen.next()
+		expect(raceRefreshResultEffect.value).toEqual(
+			race({
+				refreshSuccess: take(actions.TOKEN_REFRESH_SUCCEEDED),
+				refreshFailed: take(actions.TOKEN_REFRESH_FAILED)
+			})
+		)
+	})
+
+	test('should return null if refresh failed', () => {
+		let almostExpiredDate = new Date()
+		almostExpiredDate.setSeconds(almostExpiredDate.getSeconds() + 15)
+		const oauthToken = {
+			access_token: 'some-access-token',
+			'.expires': almostExpiredDate.toISOString()
+		}
+		const authSagaGen = authSaga(clientCredentials)
+		const callGetPersistedTokenEffect = authSagaGen.next()
+		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
+
+		const gen = getOauthToken('someModelName')
+		const callPerformRefreshEffect = gen.next()
+		const raceRefreshResultEffect = gen.next()
+		const sagaDone = gen.next({
+			refreshFailed: {}
+		})
+		expect(sagaDone.value).toEqual(null)
+		expect(sagaDone.done).toEqual(true)
+	})
+
+	test('should return token if refresh succeeds', () => {
+		let almostExpiredDate = new Date()
+		almostExpiredDate.setSeconds(almostExpiredDate.getSeconds() + 15)
+		const oauthToken = {
+			access_token: 'some-access-token',
+			'.expires': almostExpiredDate.toISOString()
+		}
+		const authSagaGen = authSaga(clientCredentials)
+		const callGetPersistedTokenEffect = authSagaGen.next()
+		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
+
+		const gen = getOauthToken('someModelName')
+		const callPerformRefreshEffect = gen.next()
+		const raceRefreshResultEffect = gen.next()
+		const sagaDone = gen.next({
+			refreshSuccess: {}
+		})
+		expect(sagaDone.value).toEqual(oauthToken)
+		expect(sagaDone.done).toEqual(true)
 	})
 })
 

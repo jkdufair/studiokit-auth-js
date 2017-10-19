@@ -3165,7 +3165,7 @@ readdirp@^2.0.0:
     readable-stream "^2.0.2"
     set-immediate-shim "^1.0.1"
 
-redux-saga@^0.15.1, redux-saga@^0.15.6:
+redux-saga@^0.15.6:
   version "0.15.6"
   resolved "https://registry.yarnpkg.com/redux-saga/-/redux-saga-0.15.6.tgz#8638dc522de6c6c0a496fe8b2b5466287ac2dc4d"
 
@@ -3592,13 +3592,13 @@ strip-json-comments@~2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/strip-json-comments/-/strip-json-comments-2.0.1.tgz#3c531942e908c2697c0ec344858c286c7ca0a60a"
 
-studiokit-net-js@^1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/studiokit-net-js/-/studiokit-net-js-1.2.0.tgz#a7233f5dc68eb2afd58724f44fd1e52d90888121"
+studiokit-net-js@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/studiokit-net-js/-/studiokit-net-js-1.2.1.tgz#6731409b5e10368c8b3175995852d8e4e16a4987"
   dependencies:
     lodash "^4.17.4"
     redux "^3.6.0"
-    redux-saga "^0.15.1"
+    redux-saga "^0.15.6"
     uuid "^3.1.0"
 
 supports-color@^2.0.0:

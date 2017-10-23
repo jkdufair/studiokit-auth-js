@@ -37,7 +37,7 @@ const takeMatchesModelFetchReceived = modelName => incomingAction =>
 	matchesModelFetchReceived(incomingAction, modelName)
 
 const matchesModelFetchFailed = (action, modelName) =>
-	action.type === netActions.FETCH_FAILED && action.modelName === modelName
+	action.type === netActions.TRANSIENT_FETCH_FAILED && action.modelName === modelName
 
 const takeMatchesModelFetchFailed = modelName => incomingAction =>
 	matchesModelFetchFailed(incomingAction, modelName)
@@ -53,8 +53,6 @@ let tokenPersistenceService: TokenPersistenceService
 let refreshLock: boolean
 
 //#endregion Local Variables
-
-// TODO: ...data.Code || ...data.code is because Forecast uses capitalized property names. Needs fixing
 
 function* getTokenFromCode(code: string): Generator<*, ?OAuthToken, *> {
 	const getTokenModelName = 'getToken'
@@ -78,7 +76,7 @@ function* getTokenFromCode(code: string): Generator<*, ?OAuthToken, *> {
 		fetchReceived: take(takeMatchesModelFetchReceived(getTokenModelName)),
 		fetchFailed: take(takeMatchesModelFetchFailed(getTokenModelName))
 	})
-	if (fetchFailed || !fetchReceived.data || fetchReceived.data.error) {
+	if ((fetchReceived && !fetchReceived.data) || fetchFailed) {
 		return null
 	}
 	return fetchReceived.data
@@ -107,18 +105,35 @@ function* getTokenFromRefreshToken(oauthToken: OAuthToken): Generator<*, ?OAuthT
 		fetchReceived: take(takeMatchesModelFetchReceived(getTokenModelName)),
 		fetchFailed: take(takeMatchesModelFetchFailed(getTokenModelName))
 	})
-	if (fetchFailed || !fetchReceived.data || fetchReceived.data.error) {
+	// for some reason the response had no body
+	if (fetchReceived && !fetchReceived.data) {
+		return null
+	}
+	// any error response
+	if (fetchFailed) {
+		// ignore time outs and server errors
+		if (
+			fetchFailed.errorData &&
+			(fetchFailed.errorData.didTimeOut || fetchFailed.errorData.code >= 500)
+		) {
+			return oauthToken
+		}
 		return null
 	}
 	return fetchReceived.data
 }
 
 function* performTokenRefresh(): Generator<*, void, *> {
-	if (refreshLock) return
+	if (refreshLock || !oauthToken) return
 	logger('Refreshing OAuth token')
 	refreshLock = true
+	// oauthToken will be set to:
+	// 1. new token (success)
+	// 2. same token (failed from timeout or server error)
+	// 3. null (fail)
+	const originalAccessToken = oauthToken.access_token
 	oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
-	if (oauthToken) {
+	if (oauthToken && oauthToken.access_token !== originalAccessToken) {
 		logger('OAuth token refreshed')
 		yield all({
 			refreshSuccess: put(
@@ -126,7 +141,7 @@ function* performTokenRefresh(): Generator<*, void, *> {
 			),
 			persistToken: call(tokenPersistenceService.persistToken, oauthToken)
 		})
-	} else {
+	} else if (oauthToken === null) {
 		logger('OAuth token failed to refresh')
 		// This should never happen outside of the token having been revoked on the server side
 		yield all({
@@ -147,6 +162,7 @@ function* loginFlow(actionPayload: Object, modelName: string): Generator<*, ?OAu
 		return null
 	}
 	let code
+	// TODO: ...data.Code || ...data.code is because Forecast uses capitalized property names. Needs fixing
 	if (fetchReceived.data && (fetchReceived.data.Code || fetchReceived.data.code)) {
 		code = fetchReceived.data.Code || fetchReceived.data.code
 	}
@@ -225,14 +241,7 @@ export function* getOauthToken(modelName: string): Generator<*, ?OAuthToken, *> 
 		if (new Date(oauthToken['.expires']) < thirtySecondsFromNow) {
 			// start a token refresh and wait for the success action in case another refresh is currently happening
 			yield call(performTokenRefresh)
-			const { refreshSuccess, refreshFailed } = yield race({
-				refreshSuccess: take(actions.TOKEN_REFRESH_SUCCEEDED),
-				refreshFailed: take(actions.TOKEN_REFRESH_FAILED)
-			})
-			if (refreshSuccess) {
-				return oauthToken
-			}
-			return null
+			return oauthToken
 		}
 	}
 	return oauthToken

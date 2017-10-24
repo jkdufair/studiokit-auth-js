@@ -59,7 +59,7 @@ describe('helpers', () => {
 		expect(
 			matchesModelFetchReceived(
 				{
-					type: netActions.FETCH_FAILED,
+					type: netActions.TRANSIENT_FETCH_FAILED,
 					modelName: 'someModel'
 				},
 				'someModel'
@@ -90,7 +90,7 @@ describe('helpers', () => {
 		expect(
 			matchesModelFetchFailed(
 				{
-					type: netActions.FETCH_FAILED,
+					type: netActions.TRANSIENT_FETCH_FAILED,
 					modelName: 'someModel'
 				},
 				'someModel'
@@ -112,7 +112,7 @@ describe('helpers', () => {
 		expect(
 			matchesModelFetchFailed(
 				{
-					type: netActions.FETCH_FAILED,
+					type: netActions.TRANSIENT_FETCH_FAILED,
 					modelName: 'someOtherModel'
 				},
 				'someModel'
@@ -122,7 +122,7 @@ describe('helpers', () => {
 	test('should call matchesModelFetchFailed from takeMatchesModelFetchFailed', () => {
 		expect(
 			takeMatchesModelFetchFailed('someModel')({
-				type: netActions.FETCH_FAILED,
+				type: netActions.TRANSIENT_FETCH_FAILED,
 				modelName: 'someModel'
 			})
 		).toEqual(true)
@@ -169,22 +169,6 @@ describe('getTokenFromCode', () => {
 		const raceFetchEffect = gen.next()
 		const fetchReceivedEffect = gen.next({
 			fetchReceived: {}
-		})
-		expect(fetchReceivedEffect.value).toEqual(null)
-		const sagaDone = gen.next()
-		expect(sagaDone.done).toEqual(true)
-	})
-
-	test('should return null and finish if fetch returns and error', () => {
-		const gen = getTokenFromCode('some-code')
-		const putDataRequestedEffect = gen.next()
-		const raceFetchEffect = gen.next()
-		const fetchReceivedEffect = gen.next({
-			fetchReceived: {
-				data: {
-					error: 'no soup for you'
-				}
-			}
 		})
 		expect(fetchReceivedEffect.value).toEqual(null)
 		const sagaDone = gen.next()
@@ -267,25 +251,6 @@ describe('getTokenFromRefreshToken', () => {
 		expect(sagaDone.done).toEqual(true)
 	})
 
-	test('should return null and finish if fetch returns and error', () => {
-		const gen = getTokenFromRefreshToken({
-			access_token: 'some-access-token',
-			refresh_token: 'some-refresh-token'
-		})
-		const putDataRequestedEffect = gen.next()
-		const raceFetchEffect = gen.next()
-		const fetchReceivedEffect = gen.next({
-			fetchReceived: {
-				data: {
-					error: 'no soup for you'
-				}
-			}
-		})
-		expect(fetchReceivedEffect.value).toEqual(null)
-		const sagaDone = gen.next()
-		expect(sagaDone.done).toEqual(true)
-	})
-
 	test('should return data and finish if fetch returns successfully', () => {
 		const gen = getTokenFromRefreshToken({
 			access_token: 'some-access-token',
@@ -303,6 +268,46 @@ describe('getTokenFromRefreshToken', () => {
 		expect(fetchReceivedEffect.value).toEqual({
 			foo: 'bar'
 		})
+		const sagaDone = gen.next()
+		expect(sagaDone.done).toEqual(true)
+	})
+
+	test('should return original oauthToken if fetch fails with a time out', () => {
+		const oauthToken = {
+			access_token: 'some-access-token',
+			refresh_token: 'some-refresh-token'
+		}
+		const gen = getTokenFromRefreshToken(oauthToken)
+		const putDataRequestedEffect = gen.next()
+		const raceFetchEffect = gen.next()
+		const fetchReceivedEffect = gen.next({
+			fetchFailed: {
+				errorData: {
+					didTimeOut: true
+				}
+			}
+		})
+		expect(fetchReceivedEffect.value).toEqual(oauthToken)
+		const sagaDone = gen.next()
+		expect(sagaDone.done).toEqual(true)
+	})
+
+	test('should return original oauthToken if fetch fails with a server error', () => {
+		const oauthToken = {
+			access_token: 'some-access-token',
+			refresh_token: 'some-refresh-token'
+		}
+		const gen = getTokenFromRefreshToken(oauthToken)
+		const putDataRequestedEffect = gen.next()
+		const raceFetchEffect = gen.next()
+		const fetchReceivedEffect = gen.next({
+			fetchFailed: {
+				errorData: {
+					code: 500
+				}
+			}
+		})
+		expect(fetchReceivedEffect.value).toEqual(oauthToken)
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
 	})
@@ -386,13 +391,26 @@ describe('performTokenRefresh', () => {
 	test('should call all success actions if refresh succeeds', () => {
 		const gen = performTokenRefresh()
 		const callGetTokenFromRefreshTokenEffect = gen.next()
-		const allSuccessActions = gen.next(oauthToken)
+		const newAccessToken = {
+			access_token: 'some-new-token'
+		}
+		const allSuccessActions = gen.next(newAccessToken)
 		expect(allSuccessActions.value).toEqual(
 			all({
-				refreshSuccess: put(createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken })),
-				persistToken: call(defaultTokenPersistenceService.persistToken, oauthToken)
+				refreshSuccess: put(
+					createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: newAccessToken })
+				),
+				persistToken: call(defaultTokenPersistenceService.persistToken, newAccessToken)
 			})
 		)
+		const sagaDone = gen.next()
+		expect(sagaDone.done).toEqual(true)
+	})
+
+	test('should not change oauthToken if it did not change due to failure', () => {
+		const gen = performTokenRefresh()
+		const callGetTokenFromRefreshTokenEffect = gen.next()
+		const allSuccessActions = gen.next(oauthToken)
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
 	})
@@ -761,49 +779,6 @@ describe('getOauthToken', () => {
 		expect(callPerformRefreshEffect.value).toEqual(call(performTokenRefresh))
 	})
 
-	test('should return race effect for refresh of oauthToken', () => {
-		let almostExpiredDate = new Date()
-		almostExpiredDate.setSeconds(almostExpiredDate.getSeconds() + 15)
-		const oauthToken = {
-			access_token: 'some-access-token',
-			'.expires': almostExpiredDate.toISOString()
-		}
-		const authSagaGen = authSaga(clientCredentials)
-		const callGetPersistedTokenEffect = authSagaGen.next()
-		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
-
-		const gen = getOauthToken('someModelName')
-		const callPerformRefreshEffect = gen.next()
-		const raceRefreshResultEffect = gen.next()
-		expect(raceRefreshResultEffect.value).toEqual(
-			race({
-				refreshSuccess: take(actions.TOKEN_REFRESH_SUCCEEDED),
-				refreshFailed: take(actions.TOKEN_REFRESH_FAILED)
-			})
-		)
-	})
-
-	test('should return null if refresh failed', () => {
-		let almostExpiredDate = new Date()
-		almostExpiredDate.setSeconds(almostExpiredDate.getSeconds() + 15)
-		const oauthToken = {
-			access_token: 'some-access-token',
-			'.expires': almostExpiredDate.toISOString()
-		}
-		const authSagaGen = authSaga(clientCredentials)
-		const callGetPersistedTokenEffect = authSagaGen.next()
-		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
-
-		const gen = getOauthToken('someModelName')
-		const callPerformRefreshEffect = gen.next()
-		const raceRefreshResultEffect = gen.next()
-		const sagaDone = gen.next({
-			refreshFailed: {}
-		})
-		expect(sagaDone.value).toEqual(null)
-		expect(sagaDone.done).toEqual(true)
-	})
-
 	test('should return token if refresh succeeds', () => {
 		let almostExpiredDate = new Date()
 		almostExpiredDate.setSeconds(almostExpiredDate.getSeconds() + 15)
@@ -817,10 +792,7 @@ describe('getOauthToken', () => {
 
 		const gen = getOauthToken('someModelName')
 		const callPerformRefreshEffect = gen.next()
-		const raceRefreshResultEffect = gen.next()
-		const sagaDone = gen.next({
-			refreshSuccess: {}
-		})
+		const sagaDone = gen.next()
 		expect(sagaDone.value).toEqual(oauthToken)
 		expect(sagaDone.done).toEqual(true)
 	})

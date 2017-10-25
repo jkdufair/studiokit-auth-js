@@ -936,7 +936,7 @@ describe('authSaga', () => {
 				const putAuthInitializedEffect = gen.next(undefined)
 				const takeEveryFetchFailureEffect = gen.next()
 				expect(takeEveryFetchFailureEffect.value).toEqual(
-					takeEvery(netActions.FETCH_TRY_FAILED, handleAuthFailure)
+					takeEvery(netActions.TRY_FETCH_FAILED, handleAuthFailure)
 				)
 			})
 		})

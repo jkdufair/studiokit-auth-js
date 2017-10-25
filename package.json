@@ -51,7 +51,7 @@
 	},
 	"dependencies": {
 		"redux-saga": "^0.15.6",
-		"studiokit-net-js": "^1.3.0"
+		"studiokit-net-js": "^1.3.1"
 	},
 	"lint-staged": {
 		"*.js": [

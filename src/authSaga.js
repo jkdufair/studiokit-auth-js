@@ -221,6 +221,7 @@ function* handleAuthFailure(action): Generator<*, *, *> {
 	// but if the app is backgrounded, the loop might not be caught up yet
 	if (
 		oauthToken &&
+		action.errorData &&
 		action.errorData.code >= 400 &&
 		action.errorData.code <= 499 &&
 		new Date(oauthToken['.expires']) < new Date()
@@ -287,7 +288,7 @@ export default function* authSaga(
 
 	yield put(createAction(actions.AUTH_INITIALIZED))
 
-	yield takeEvery(netActions.FETCH_TRY_FAILED, handleAuthFailure)
+	yield takeEvery(netActions.TRY_FETCH_FAILED, handleAuthFailure)
 
 	while (true) {
 		if (!oauthToken) {

@@ -9,6 +9,9 @@ const initialState = {
 
 export default function authReducer(state = initialState, action) {
 	switch (action.type) {
+		case actions.AUTH_INITIALIZED:
+			return Object.assign({}, state, { isInitialized: true })
+
 		case actions.GET_TOKEN_SUCCEEDED:
 		case actions.TOKEN_REFRESH_SUCCEEDED:
 			return Object.assign({}, state, {
@@ -37,9 +40,6 @@ export default function authReducer(state = initialState, action) {
 				isAuthenticated: false,
 				didFail: true
 			})
-
-		case actions.AUTH_INITIALIZED:
-			return Object.assign({}, state, { isInitialized: true })
 
 		default:
 			return state

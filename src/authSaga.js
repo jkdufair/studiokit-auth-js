@@ -30,6 +30,18 @@ const defaultLogger: LoggerFunction = (message: string) => {
 	console.debug(message)
 }
 
+const matchesModelFetchReceived = (action, modelName) =>
+	action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === modelName
+
+const takeMatchesModelFetchReceived = modelName => incomingAction =>
+	matchesModelFetchReceived(incomingAction, modelName)
+
+const matchesModelFetchFailed = (action, modelName) =>
+	action.type === netActions.TRANSIENT_FETCH_FAILED && action.modelName === modelName
+
+const takeMatchesModelFetchFailed = modelName => incomingAction =>
+	matchesModelFetchFailed(incomingAction, modelName)
+
 //#endregion Helpers
 
 //#region Local Variables
@@ -41,8 +53,6 @@ let tokenPersistenceService: TokenPersistenceService
 let refreshLock: boolean
 
 //#endregion Local Variables
-
-// TODO: ...data.Code || ...data.code is because Forecast uses capitalized property names. Needs fixing
 
 function* getTokenFromCode(code: string): Generator<*, ?OAuthToken, *> {
 	const getTokenModelName = 'getToken'
@@ -62,12 +72,14 @@ function* getTokenFromCode(code: string): Generator<*, ?OAuthToken, *> {
 			noStore: true
 		})
 	)
-	const tokenFetchResultAction = yield take(
-		action =>
-			action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
-			action.modelName === getTokenModelName
-	)
-	return tokenFetchResultAction.data.error ? null : tokenFetchResultAction.data
+	const { fetchReceived, fetchFailed } = yield race({
+		fetchReceived: take(takeMatchesModelFetchReceived(getTokenModelName)),
+		fetchFailed: take(takeMatchesModelFetchFailed(getTokenModelName))
+	})
+	if ((fetchReceived && !fetchReceived.data) || fetchFailed) {
+		return null
+	}
+	return fetchReceived.data
 }
 
 function* getTokenFromRefreshToken(oauthToken: OAuthToken): Generator<*, ?OAuthToken, *> {
@@ -85,130 +97,123 @@ function* getTokenFromRefreshToken(oauthToken: OAuthToken): Generator<*, ?OAuthT
 		createAction(netActions.DATA_REQUESTED, {
 			modelName: getTokenModelName,
 			body: formBodyString,
-			noAuth: true,
 			noStore: true,
 			timeLimit: 60000
 		})
 	)
-	const tokenFetchResultAction = yield take(
-		action =>
-			action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
-			action.modelName === getTokenModelName
-	)
-	if (tokenFetchResultAction.data.error) {
-		// This should never happen outside of the token having been revoked on the server side
-		yield all({
-			logOut: put(createAction(actions.LOG_OUT_REQUESTED)),
-			signalRefreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED))
-		})
+	const { fetchReceived, fetchFailed } = yield race({
+		fetchReceived: take(takeMatchesModelFetchReceived(getTokenModelName)),
+		fetchFailed: take(takeMatchesModelFetchFailed(getTokenModelName))
+	})
+	// for some reason the response had no body
+	if (fetchReceived && !fetchReceived.data) {
 		return null
-	} else {
-		return tokenFetchResultAction.data
 	}
+	// any error response
+	if (fetchFailed) {
+		// ignore time outs and server errors
+		if (
+			fetchFailed.errorData &&
+			(fetchFailed.errorData.didTimeOut || fetchFailed.errorData.code >= 500)
+		) {
+			return oauthToken
+		}
+		return null
+	}
+	return fetchReceived.data
 }
 
 function* performTokenRefresh(): Generator<*, void, *> {
+	if (refreshLock || !oauthToken) return
 	logger('Refreshing OAuth token')
-	if (refreshLock) return
 	refreshLock = true
+	// oauthToken will be set to:
+	// 1. new token (success)
+	// 2. same token (failed from timeout or server error)
+	// 3. null (fail)
+	const originalAccessToken = oauthToken.access_token
 	oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
-	yield all({
-		sendTokenForIntercept: put(
-			createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: oauthToken })
-		),
-		persistToken: call(tokenPersistenceService.persistToken, oauthToken)
-	})
+	if (oauthToken && oauthToken.access_token !== originalAccessToken) {
+		logger('OAuth token refreshed')
+		yield all({
+			refreshSuccess: put(
+				createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: oauthToken })
+			),
+			persistToken: call(tokenPersistenceService.persistToken, oauthToken)
+		})
+	} else if (oauthToken === null) {
+		logger('OAuth token failed to refresh')
+		// This should never happen outside of the token having been revoked on the server side
+		yield all({
+			refreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED)),
+			logOut: put(createAction(actions.LOG_OUT_REQUESTED))
+		})
+	}
 	refreshLock = false
-	logger('OAuth token refreshed')
 }
 
-function* casCredentialsLoginFlow(
-	credentials: Credentials,
-	modelName: string
-): Generator<*, ?OAuthToken, *> {
-	yield put(
-		createAction(netActions.DATA_REQUESTED, {
-			modelName: modelName,
-			body: credentials,
-			noStore: true,
-			timeLimit: 120000
-		})
-	)
-	const { resultReceived, loginFailed } = yield race({
-		resultReceived: take(
-			action =>
-				action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED && action.modelName === modelName
-		),
-		loginFailed: take(
-			action => action.type === netActions.FETCH_FAILED && action.modelName === modelName
-		)
+function* loginFlow(actionPayload: Object, modelName: string): Generator<*, ?OAuthToken, *> {
+	yield put(createAction(netActions.DATA_REQUESTED, actionPayload))
+	const { fetchReceived, fetchFailed } = yield race({
+		fetchReceived: take(takeMatchesModelFetchReceived(modelName)),
+		fetchFailed: take(takeMatchesModelFetchFailed(modelName))
 	})
-	if (loginFailed) {
+	if (fetchFailed) {
 		return null
 	}
-	const code = resultReceived.data.Code || resultReceived.data.code
+	let code
+	// TODO: ...data.Code || ...data.code is because Forecast uses capitalized property names. Needs fixing
+	if (fetchReceived.data && (fetchReceived.data.Code || fetchReceived.data.code)) {
+		code = fetchReceived.data.Code || fetchReceived.data.code
+	}
 	if (!code) {
 		return null
 	}
-	return yield getTokenFromCode(code)
+	return yield call(getTokenFromCode, code)
+}
+
+function* credentialsLoginFlow(
+	credentials: Credentials,
+	modelName: string
+): Generator<*, ?OAuthToken, *> {
+	return yield call(
+		loginFlow,
+		{
+			modelName: modelName,
+			noStore: true,
+			body: credentials,
+			timeLimit: 120000
+		},
+		modelName
+	)
 }
 
 function* casProxyLoginFlow(credentials: Credentials): Generator<*, ?OAuthToken, *> {
-	return yield call(casCredentialsLoginFlow, credentials, 'codeFromCasProxy')
+	return yield call(credentialsLoginFlow, credentials, 'codeFromCasProxy')
 }
 
 function* casV1LoginFlow(credentials: Credentials): Generator<*, ?OAuthToken, *> {
-	return yield call(casCredentialsLoginFlow, credentials, 'codeFromCasV1')
+	return yield call(credentialsLoginFlow, credentials, 'codeFromCasV1')
+}
+
+function* localLoginFlow(credentials: Credentials): Generator<*, ?OAuthToken, *> {
+	return yield call(credentialsLoginFlow, credentials, 'codeFromLocalCredentials')
 }
 
 function* casTicketLoginFlow(ticket: string, service: string): Generator<*, ?OAuthToken, *> {
-	const getCodeModelName = 'codeFromCasTicket'
-	yield put(
-		createAction(netActions.DATA_REQUESTED, {
-			modelName: getCodeModelName,
+	const modelName = 'codeFromCasTicket'
+	return yield call(
+		loginFlow,
+		{
+			modelName: modelName,
 			noStore: true,
 			queryParams: {
 				ticket,
 				service
 			}
-		})
+		},
+		modelName
 	)
-	const action = yield take(
-		action =>
-			action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED &&
-			action.modelName === getCodeModelName
-	)
-	const code = action.data.Code || action.data.code
-	if (!code) {
-		return null
-	}
-	return yield getTokenFromCode(code)
-}
-
-function* localLoginFlow(credentials: Credentials): Generator<*, ?OAuthToken, *> {
-	// credentials -> code -> token
-	const getCodeModelName = 'codeFromLocalCredentials'
-	yield put(
-		createAction(netActions.DATA_REQUESTED, {
-			modelName: getCodeModelName,
-			body: credentials,
-			noStore: true
-		})
-	)
-	const action = yield take(
-		action =>
-			(action.type === netActions.TRANSIENT_FETCH_RESULT_RECEIVED ||
-				action.type === netActions.FETCH_FAILED) &&
-			action.modelName === getCodeModelName
-	)
-	let code
-	if (action.data && (action.data.Code || action.data.code)) {
-		code = action.data.Code || action.data.code
-	}
-	if (!code) {
-		return null
-	}
-	return yield getTokenFromCode(code)
 }
 
 function* handleAuthFailure(action): Generator<*, *, *> {
@@ -216,6 +221,7 @@ function* handleAuthFailure(action): Generator<*, *, *> {
 	// but if the app is backgrounded, the loop might not be caught up yet
 	if (
 		oauthToken &&
+		action.errorData &&
 		action.errorData.code >= 400 &&
 		action.errorData.code <= 499 &&
 		new Date(oauthToken['.expires']) < new Date()
@@ -231,11 +237,11 @@ export function* getOauthToken(modelName: string): Generator<*, ?OAuthToken, *> 
 		return null
 	}
 	if (oauthToken && oauthToken['.expires']) {
-		let currentTime = new Date()
-		currentTime.setSeconds(currentTime.getSeconds() - 30)
-		if (new Date(oauthToken['.expires']) < currentTime) {
+		let thirtySecondsFromNow = new Date()
+		thirtySecondsFromNow.setSeconds(thirtySecondsFromNow.getSeconds() + 30)
+		if (new Date(oauthToken['.expires']) < thirtySecondsFromNow) {
 			// start a token refresh and wait for the success action in case another refresh is currently happening
-			yield all([call(performTokenRefresh), take(actions.TOKEN_REFRESH_SUCCEEDED)])
+			yield call(performTokenRefresh)
 			return oauthToken
 		}
 	}
@@ -250,7 +256,7 @@ export default function* authSaga(
 	loggerParam: LoggerFunction = defaultLogger
 ): Generator<*, void, *> {
 	if (!clientCredentialsParam) {
-		throw new Error("'clientCredentials' is required for auth saga")
+		throw new Error("'clientCredentialsParam' is required for authSaga")
 	}
 	clientCredentials = clientCredentialsParam
 	tokenPersistenceService = tokenPersistenceServiceParam
@@ -261,7 +267,7 @@ export default function* authSaga(
 	oauthToken = yield call(tokenPersistenceService.getPersistedToken)
 
 	// If no token, try to get CAS ticket (normally in the URL), use it to get a token
-	if (!oauthToken && ticketProviderService) {
+	if (!oauthToken) {
 		const casTicket = ticketProviderService.getTicket()
 		ticketProviderService.removeTicket()
 		const service = ticketProviderService.getAppServiceName()
@@ -272,7 +278,7 @@ export default function* authSaga(
 
 	// If no token, try to get OAuth Code (normally in the URL), use it to get a token
 	// e.g. Shibboleth, Facebook, Google
-	if (!oauthToken && codeProviderService) {
+	if (!oauthToken) {
 		const code = codeProviderService.getCode()
 		codeProviderService.removeCode()
 		if (code) {
@@ -282,7 +288,7 @@ export default function* authSaga(
 
 	yield put(createAction(actions.AUTH_INITIALIZED))
 
-	yield takeEvery(netActions.FETCH_TRY_FAILED, handleAuthFailure)
+	yield takeEvery(netActions.TRY_FETCH_FAILED, handleAuthFailure)
 
 	while (true) {
 		if (!oauthToken) {

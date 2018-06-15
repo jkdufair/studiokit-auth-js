@@ -23,7 +23,7 @@ import {
 
 /**
  * A default logger function that logs to the console. Used if no other logger is provided
- * 
+ *
  * @param {string} message - The message to log
  */
 const defaultLogger: LoggerFunction = (message: string) => {
@@ -41,6 +41,16 @@ const matchesModelFetchFailed = (action, modelName) =>
 
 const takeMatchesModelFetchFailed = modelName => incomingAction =>
 	matchesModelFetchFailed(incomingAction, modelName)
+
+const matchesTokenRefreshSucceeded = action => action.type === actions.TOKEN_REFRESH_SUCCEEDED
+
+const takeMatchesTokenRefreshSucceeded = () => incomingAction =>
+	matchesTokenRefreshSucceeded(incomingAction)
+
+const matchesTokenRefreshFailed = action => action.type === actions.TOKEN_REFRESH_FAILED
+
+const takeMatchesTokenRefreshFailed = () => incomingAction =>
+	matchesTokenRefreshFailed(incomingAction)
 
 //#endregion Helpers
 
@@ -124,7 +134,14 @@ function* getTokenFromRefreshToken(oauthToken: OAuthToken): Generator<*, ?OAuthT
 }
 
 function* performTokenRefresh(): Generator<*, void, *> {
-	if (refreshLock || !oauthToken) return
+	if (refreshLock || !oauthToken) {
+		// already refreshing. wait for the current refresh to succeed or fail.
+		yield race({
+			refreshSuccess: take(takeMatchesTokenRefreshSucceeded),
+			refreshFailed: take(takeMatchesTokenRefreshFailed)
+		})
+		return
+	}
 	logger('Refreshing OAuth token')
 	refreshLock = true
 	// oauthToken will be set to:

@@ -1,6 +1,6 @@
 {
 	"name": "studiokit-auth-js",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"scripts": {
 		"eslint-check": "eslint --print-config .eslintrc.js | eslint-config-prettier-check",
 		"lint": "eslint --ext=js ./*.js src test",
@@ -40,18 +40,18 @@
 		"eslint-config-studiokit": "^0.1.0",
 		"eslint-plugin-prettier": "^2.3.1",
 		"eslint-plugin-redux-saga": "^0.5.0",
-		"fetch-mock": "^5.13.1",
-		"flow-bin": "^0.57.3",
+		"fetch-mock": "^6.4.4",
+		"flow-bin": "^0.74.0",
 		"husky": "^0.14.3",
 		"immutable": "^3.8.2",
 		"isomorphic-fetch": "^2.2.1",
-		"jest": "^21.2.1",
-		"lint-staged": "^4.3.0",
+		"jest": "^23.1.0",
+		"lint-staged": "^7.2.0",
 		"prettier": "^1.7.0"
 	},
 	"dependencies": {
 		"redux-saga": "^0.15.6",
-		"studiokit-net-js": "^1.4.0"
+		"studiokit-net-js": "^1.4.22"
 	},
 	"lint-staged": {
 		"*.js": [

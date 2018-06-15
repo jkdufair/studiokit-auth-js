@@ -14,6 +14,13 @@ const takeMatchesModelFetchReceived = AuthSagaRewireAPI.__get__('takeMatchesMode
 const matchesModelFetchFailed = AuthSagaRewireAPI.__get__('matchesModelFetchFailed')
 const takeMatchesModelFetchFailed = AuthSagaRewireAPI.__get__('takeMatchesModelFetchFailed')
 
+const matchesTokenRefreshSucceeded = AuthSagaRewireAPI.__get__('matchesTokenRefreshSucceeded')
+const takeMatchesTokenRefreshSucceeded = AuthSagaRewireAPI.__get__(
+	'takeMatchesTokenRefreshSucceeded'
+)
+const matchesTokenRefreshFailed = AuthSagaRewireAPI.__get__('matchesTokenRefreshFailed')
+const takeMatchesTokenRefreshFailed = AuthSagaRewireAPI.__get__('takeMatchesTokenRefreshFailed')
+
 const getTokenFromCode = AuthSagaRewireAPI.__get__('getTokenFromCode')
 const getTokenFromRefreshToken = AuthSagaRewireAPI.__get__('getTokenFromRefreshToken')
 const performTokenRefresh = AuthSagaRewireAPI.__get__('performTokenRefresh')
@@ -124,6 +131,20 @@ describe('helpers', () => {
 			takeMatchesModelFetchFailed('someModel')({
 				type: netActions.TRANSIENT_FETCH_FAILED,
 				modelName: 'someModel'
+			})
+		).toEqual(true)
+	})
+	test('should call matchesTokenRefreshSucceeded from takeMatchesTokenRefreshSucceeded', () => {
+		expect(
+			takeMatchesTokenRefreshSucceeded()({
+				type: actions.TOKEN_REFRESH_SUCCEEDED
+			})
+		).toEqual(true)
+	})
+	test('should call matchesTokenRefreshFailed from takeMatchesTokenRefreshFailed', () => {
+		expect(
+			takeMatchesTokenRefreshFailed()({
+				type: actions.TOKEN_REFRESH_FAILED
 			})
 		).toEqual(true)
 	})
@@ -338,19 +359,27 @@ describe('performTokenRefresh', () => {
 		expect(sagaDone.done).toEqual(true)
 	})
 
-	test('should finish and return if refreshLock is already true', () => {
+	test('should return race condition if refreshLock is already true', () => {
 		const gen = performTokenRefresh()
 		const callGetTokenFromRefreshTokenEffect = gen.next()
 		consoleOutput = null
 
 		const gen2 = performTokenRefresh()
-		const sagaDone2 = gen2.next()
+		const raceEffect = gen2.next()
 		expect(consoleOutput).toEqual(null)
-		expect(sagaDone2.done).toEqual(true)
+		expect(raceEffect.value).toEqual(
+			race({
+				refreshSuccess: take(takeMatchesTokenRefreshSucceeded),
+				refreshFailed: take(takeMatchesTokenRefreshFailed)
+			})
+		)
 
 		const allSuccessActions = gen.next(oauthToken)
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
+
+		const saga2Done = gen2.next()
+		expect(saga2Done.done).toEqual(true)
 	})
 
 	test('should allow refresh again after first refresh is finished', () => {
@@ -358,12 +387,6 @@ describe('performTokenRefresh', () => {
 		const gen = performTokenRefresh()
 		const callGetTokenFromRefreshTokenEffect = gen.next()
 		consoleOutput = null
-
-		// second refresh - fails
-		const gen2 = performTokenRefresh()
-		const sagaDone2 = gen2.next()
-		expect(consoleOutput).toEqual(null)
-		expect(sagaDone2.done).toEqual(true)
 
 		// first refresh - finish
 		const allSuccessActions = gen.next(oauthToken)
@@ -374,18 +397,18 @@ describe('performTokenRefresh', () => {
 		let refreshLock = AuthSagaRewireAPI.__get__('refreshLock')
 		expect(refreshLock).toEqual(false)
 
-		// third refresh - success
-		const gen3 = performTokenRefresh()
-		const callGetTokenFromRefreshTokenEffect3 = gen3.next()
+		// second refresh - success
+		const gen2 = performTokenRefresh()
+		const callGetTokenFromRefreshTokenEffect2 = gen2.next()
 		expect(consoleOutput).toEqual('Refreshing OAuth token')
 		refreshLock = AuthSagaRewireAPI.__get__('refreshLock')
 		expect(refreshLock).toEqual(true)
-		expect(callGetTokenFromRefreshTokenEffect3.value).toEqual(
+		expect(callGetTokenFromRefreshTokenEffect2.value).toEqual(
 			call(getTokenFromRefreshToken, oauthToken)
 		)
-		const allSuccessActions3 = gen3.next(oauthToken)
-		const sagaDone3 = gen3.next()
-		expect(sagaDone3.done).toEqual(true)
+		const allSuccessActions2 = gen2.next(oauthToken)
+		const sagaDone2 = gen2.next()
+		expect(sagaDone2.done).toEqual(true)
 	})
 
 	test('should call all success actions if refresh succeeds', () => {

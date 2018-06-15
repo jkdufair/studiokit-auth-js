@@ -42,6 +42,16 @@ const matchesModelFetchFailed = (action, modelName) =>
 const takeMatchesModelFetchFailed = modelName => incomingAction =>
 	matchesModelFetchFailed(incomingAction, modelName)
 
+const matchesTokenRefreshSucceeded = action => action.type === actions.TOKEN_REFRESH_SUCCEEDED
+
+const takeMatchesTokenRefreshSucceeded = () => incomingAction =>
+	matchesTokenRefreshSucceeded(incomingAction)
+
+const matchesTokenRefreshFailed = action => action.type === actions.TOKEN_REFRESH_FAILED
+
+const takeMatchesTokenRefreshFailed = () => incomingAction =>
+	matchesTokenRefreshFailed(incomingAction)
+
 //#endregion Helpers
 
 //#region Local Variables
@@ -127,8 +137,8 @@ function* performTokenRefresh(): Generator<*, void, *> {
 	if (refreshLock || !oauthToken) {
 		// already refreshing. wait for the current refresh to succeed or fail.
 		yield race({
-			refreshSuccess: take(action => action.type === actions.TOKEN_REFRESH_SUCCEEDED),
-			refreshFailed: take(action => action.type === actions.TOKEN_REFRESH_FAILED)
+			refreshSuccess: take(takeMatchesTokenRefreshSucceeded),
+			refreshFailed: take(takeMatchesTokenRefreshFailed)
 		})
 		return
 	}

@@ -4399,14 +4399,14 @@ strip-json-comments@~2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/strip-json-comments/-/strip-json-comments-2.0.1.tgz#3c531942e908c2697c0ec344858c286c7ca0a60a"
 
-studiokit-net-js@^1.4.21:
-  version "1.4.21"
-  resolved "https://registry.yarnpkg.com/studiokit-net-js/-/studiokit-net-js-1.4.21.tgz#ba0c8dd8cd4e0e68a2ffff1b95dceb4a265af0f9"
+studiokit-net-js@^1.4.22:
+  version "1.4.22"
+  resolved "https://registry.yarnpkg.com/studiokit-net-js/-/studiokit-net-js-1.4.22.tgz#752b3cabd28be4894b2e5284e586ba537f368f4d"
   dependencies:
     lodash "^4.17.4"
     redux "^3.6.0"
     redux-saga "^0.15.6"
-    uuid "^3.1.0"
+    uuid "^3.2.1"
 
 supports-color@^2.0.0:
   version "2.0.0"
@@ -4651,7 +4651,7 @@ uuid@^3.0.0:
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.1.0.tgz#3dd3d3e790abc24d7b0d3a034ffababe28ebbc04"
 
-uuid@^3.1.0:
+uuid@^3.1.0, uuid@^3.2.1:
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.2.1.tgz#12c528bb9d58d0b9265d9a2f6f0fe8be17ff1f14"
 

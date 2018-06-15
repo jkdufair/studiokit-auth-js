@@ -23,7 +23,7 @@ import {
 
 /**
  * A default logger function that logs to the console. Used if no other logger is provided
- * 
+ *
  * @param {string} message - The message to log
  */
 const defaultLogger: LoggerFunction = (message: string) => {
@@ -124,7 +124,14 @@ function* getTokenFromRefreshToken(oauthToken: OAuthToken): Generator<*, ?OAuthT
 }
 
 function* performTokenRefresh(): Generator<*, void, *> {
-	if (refreshLock || !oauthToken) return
+	if (refreshLock || !oauthToken) {
+		// already refreshing. wait for the current refresh to succeed or fail.
+		yield race({
+			refreshSuccess: take(action => action.type === actions.TOKEN_REFRESH_SUCCEEDED),
+			refreshFailed: take(action => action.type === actions.TOKEN_REFRESH_FAILED)
+		})
+		return
+	}
 	logger('Refreshing OAuth token')
 	refreshLock = true
 	// oauthToken will be set to:

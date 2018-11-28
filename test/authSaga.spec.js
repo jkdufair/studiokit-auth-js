@@ -650,27 +650,6 @@ describe('handleAuthFailure', () => {
 		expect(sagaDone.done).toEqual(true)
 	})
 
-	test("does nothing if authSaga's token is not expired", () => {
-		let notExpiredDate = new Date()
-		notExpiredDate.setMinutes(notExpiredDate.getMinutes() + 1)
-		const oauthToken = {
-			access_token: 'some-access-token',
-			'.expires': notExpiredDate.toISOString()
-		}
-		const authSagaGen = authSaga(clientCredentials)
-		const callGetPersistedTokenEffect = authSagaGen.next()
-		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
-
-		const gen = handleAuthFailure({
-			errorData: {
-				code: 400
-			}
-		})
-		const sagaDone = gen.next()
-		expect(sagaDone.value).toEqual(undefined)
-		expect(sagaDone.done).toEqual(true)
-	})
-
 	test('does nothing if error code is greater than 400-499', () => {
 		let expiredDate = new Date()
 		expiredDate.setMinutes(expiredDate.getMinutes() - 1)

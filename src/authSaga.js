@@ -240,8 +240,7 @@ function* handleAuthFailure(action): Generator<*, *, *> {
 		oauthToken &&
 		action.errorData &&
 		action.errorData.code >= 400 &&
-		action.errorData.code <= 499 &&
-		new Date(oauthToken['.expires']) < new Date()
+		action.errorData.code <= 499
 	) {
 		logger('token expired - refreshing')
 		yield call(performTokenRefresh)

@@ -2,7 +2,7 @@
 
 import type { TokenPersistenceService, TicketProviderService, CodeProviderService } from './types'
 
-let storedToken
+let storedToken = null
 
 const tokenPersistenceService: TokenPersistenceService = {
 	getPersistedToken: () => {

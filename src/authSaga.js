@@ -302,7 +302,7 @@ export default function* authSaga(
 		}
 	}
 
-	yield put(createAction(actions.AUTH_INITIALIZED))
+	yield put(createAction(actions.AUTH_INITIALIZED, { oauthToken }))
 
 	yield takeEvery(netActions.TRY_FETCH_FAILED, handleAuthFailure)
 
@@ -337,7 +337,7 @@ export default function* authSaga(
 
 		yield all({
 			clearUserData: put(createAction(netActions.KEY_REMOVAL_REQUESTED, { modelName: 'user' })),
-			clearPersistentToken: call(tokenPersistenceService.persistToken, null)
+			clearPersistentToken: call(tokenPersistenceService.persistToken, undefined)
 		})
 		oauthToken = null
 	}

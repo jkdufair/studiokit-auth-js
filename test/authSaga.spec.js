@@ -340,6 +340,7 @@ describe('performTokenRefresh', () => {
 		access_token: 'some-access-token'
 	}
 	beforeEach(() => {
+		defaultTokenPersistenceService.persistToken(undefined)
 		authSagaGen = authSaga(clientCredentials, defaultTokenPersistenceService)
 		const callGetPersistedTokenEffect = authSagaGen.next()
 		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
@@ -801,6 +802,9 @@ describe('getOauthToken', () => {
 })
 
 describe('authSaga', () => {
+	beforeEach(() => {
+		defaultTokenPersistenceService.persistToken(undefined)
+	})
 	describe('init', () => {
 		test('should throw without clientCredentialsParam', () => {
 			const gen = authSaga()
@@ -830,8 +834,10 @@ describe('authSaga', () => {
 			expect(callGetPersistedTokenEffect.value).toEqual(
 				call(tokenPersistenceService.getPersistedToken)
 			)
-			const putAuthInitializedEffect = gen.next()
-			expect(putAuthInitializedEffect.value).toEqual(put(createAction(actions.AUTH_INITIALIZED)))
+			const putAuthInitializedEffect = gen.next(storedToken)
+			expect(putAuthInitializedEffect.value).toEqual(
+				put(createAction(actions.AUTH_INITIALIZED, { oauthToken: storedToken }))
+			)
 		})
 
 		test('defaultTokenPersistenceService.getPersistedToken does not return a token', () => {
@@ -841,7 +847,9 @@ describe('authSaga', () => {
 				call(defaultTokenPersistenceService.getPersistedToken)
 			)
 			const putAuthInitializedEffect = gen.next(defaultTokenPersistenceService.getPersistedToken())
-			expect(putAuthInitializedEffect.value).toEqual(put(createAction(actions.AUTH_INITIALIZED)))
+			expect(putAuthInitializedEffect.value).toEqual(
+				put(createAction(actions.AUTH_INITIALIZED, { oauthToken: undefined }))
+			)
 		})
 
 		describe('with no oauthToken, casTicket init', () => {
@@ -1111,7 +1119,7 @@ describe('authSaga', () => {
 						clearUserData: put(
 							createAction(netActions.KEY_REMOVAL_REQUESTED, { modelName: 'user' })
 						),
-						clearPersistentToken: call(defaultTokenPersistenceService.persistToken, null)
+						clearPersistentToken: call(defaultTokenPersistenceService.persistToken, undefined)
 					})
 				)
 				const raceLoginActionEffect = gen.next()

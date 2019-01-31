@@ -10,7 +10,10 @@ const initialState = {
 export default function authReducer(state = initialState, action) {
 	switch (action.type) {
 		case actions.AUTH_INITIALIZED:
-			return Object.assign({}, state, { isInitialized: true })
+			return Object.assign({}, state, {
+				isInitialized: true,
+				isAuthenticated: !!action.oauthToken
+			})
 
 		case actions.GET_TOKEN_SUCCEEDED:
 		case actions.TOKEN_REFRESH_SUCCEEDED:

@@ -340,7 +340,7 @@ describe('performTokenRefresh', () => {
 		access_token: 'some-access-token'
 	}
 	beforeEach(() => {
-		defaultTokenPersistenceService.persistToken(undefined)
+		defaultTokenPersistenceService.persistToken(null)
 		authSagaGen = authSaga(clientCredentials, defaultTokenPersistenceService)
 		const callGetPersistedTokenEffect = authSagaGen.next()
 		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
@@ -455,7 +455,7 @@ describe('performTokenRefresh', () => {
 
 	test('defaultTokenPersistenceService.persistToken should update token', () => {
 		let currentToken = defaultTokenPersistenceService.getPersistedToken()
-		expect(currentToken).toEqual(undefined)
+		expect(currentToken).toEqual(null)
 		const token = {
 			access_token: 'some-token'
 		}
@@ -802,7 +802,7 @@ describe('getOauthToken', () => {
 
 describe('authSaga', () => {
 	beforeEach(() => {
-		defaultTokenPersistenceService.persistToken(undefined)
+		defaultTokenPersistenceService.persistToken(null)
 	})
 	describe('init', () => {
 		test('should throw without clientCredentialsParam', () => {
@@ -847,7 +847,7 @@ describe('authSaga', () => {
 			)
 			const putAuthInitializedEffect = gen.next(defaultTokenPersistenceService.getPersistedToken())
 			expect(putAuthInitializedEffect.value).toEqual(
-				put(createAction(actions.AUTH_INITIALIZED, { oauthToken: undefined }))
+				put(createAction(actions.AUTH_INITIALIZED, { oauthToken: null }))
 			)
 		})
 
@@ -1125,7 +1125,7 @@ describe('authSaga', () => {
 						clearUserData: put(
 							createAction(netActions.KEY_REMOVAL_REQUESTED, { modelName: 'user' })
 						),
-						clearPersistentToken: call(defaultTokenPersistenceService.persistToken, undefined)
+						clearPersistentToken: call(defaultTokenPersistenceService.persistToken, null)
 					})
 				)
 				const raceLoginActionEffect = gen.next()

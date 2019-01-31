@@ -150,14 +150,10 @@ function* performTokenRefresh(): Generator<*, void, *> {
 	// 3. null (fail)
 	const originalAccessToken = oauthToken.access_token
 	oauthToken = yield call(getTokenFromRefreshToken, oauthToken)
-	if (oauthToken && oauthToken.access_token !== originalAccessToken) {
+	if (!!oauthToken && oauthToken.access_token !== originalAccessToken) {
 		logger('OAuth token refreshed')
-		yield all({
-			refreshSuccess: put(
-				createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: oauthToken })
-			),
-			persistToken: call(tokenPersistenceService.persistToken, oauthToken)
-		})
+		yield call(tokenPersistenceService.persistToken, oauthToken)
+		yield put(createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: oauthToken }))
 	} else if (oauthToken === null) {
 		logger('OAuth token failed to refresh')
 		// This should never happen outside of the token having been revoked on the server side
@@ -302,7 +298,7 @@ export default function* authSaga(
 		}
 	}
 
-	yield put(createAction(actions.AUTH_INITIALIZED))
+	yield put(createAction(actions.AUTH_INITIALIZED, { oauthToken }))
 
 	yield takeEvery(netActions.TRY_FETCH_FAILED, handleAuthFailure)
 
@@ -325,9 +321,9 @@ export default function* authSaga(
 		}
 
 		if (oauthToken) {
+			yield call(tokenPersistenceService.persistToken, oauthToken)
 			yield all({
 				loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
-				persistToken: call(tokenPersistenceService.persistToken, oauthToken),
 				getUserInfo: put(createAction(netActions.DATA_REQUESTED, { modelName: 'user.userInfo' })),
 				logOut: take(actions.LOG_OUT_REQUESTED)
 			})
@@ -337,7 +333,7 @@ export default function* authSaga(
 
 		yield all({
 			clearUserData: put(createAction(netActions.KEY_REMOVAL_REQUESTED, { modelName: 'user' })),
-			clearPersistentToken: call(tokenPersistenceService.persistToken, null)
+			clearPersistentToken: call(tokenPersistenceService.persistToken, undefined)
 		})
 		oauthToken = null
 	}

@@ -418,14 +418,13 @@ describe('performTokenRefresh', () => {
 		const newAccessToken = {
 			access_token: 'some-new-token'
 		}
-		const allSuccessActions = gen.next(newAccessToken)
-		expect(allSuccessActions.value).toEqual(
-			all({
-				refreshSuccess: put(
-					createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: newAccessToken })
-				),
-				persistToken: call(defaultTokenPersistenceService.persistToken, newAccessToken)
-			})
+		const callPersistTokenEffect = gen.next(newAccessToken)
+		expect(callPersistTokenEffect.value).toEqual(
+			call(defaultTokenPersistenceService.persistToken, newAccessToken)
+		)
+		const putRefreshSuccessEffect = gen.next()
+		expect(putRefreshSuccessEffect.value).toEqual(
+			put(createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: newAccessToken }))
 		)
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
@@ -1039,11 +1038,14 @@ describe('authSaga', () => {
 					localAction: null
 				})
 				const callActionEffect = gen.next()
-				const allLoginSuccessEffect = gen.next(oauthToken)
+				const callPersistTokenEffect = gen.next(oauthToken)
+				expect(callPersistTokenEffect.value).toEqual(
+					call(defaultTokenPersistenceService.persistToken, oauthToken)
+				)
+				const allLoginSuccessEffect = gen.next()
 				expect(allLoginSuccessEffect.value).toEqual(
 					all({
 						loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
-						persistToken: call(defaultTokenPersistenceService.persistToken, oauthToken),
 						getUserInfo: put(
 							createAction(netActions.DATA_REQUESTED, { modelName: 'user.userInfo' })
 						),
@@ -1087,11 +1089,14 @@ describe('authSaga', () => {
 			})
 
 			test('triggers all login effects after loading oauthToken', () => {
+				const callPersistTokenEffect = gen.next()
+				expect(callPersistTokenEffect.value).toEqual(
+					call(defaultTokenPersistenceService.persistToken, oauthToken)
+				)
 				const allLoginSuccessEffect = gen.next()
 				expect(allLoginSuccessEffect.value).toEqual(
 					all({
 						loginSuccess: put(createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })),
-						persistToken: call(defaultTokenPersistenceService.persistToken, oauthToken),
 						getUserInfo: put(
 							createAction(netActions.DATA_REQUESTED, { modelName: 'user.userInfo' })
 						),
@@ -1112,6 +1117,7 @@ describe('authSaga', () => {
 			})
 
 			test('clears user data after log out requested, and restarts loop back to race effect', () => {
+				const callPersistTokenEffect = gen.next()
 				const allLoginSuccessEffect = gen.next()
 				const allClearDataEffect = gen.next()
 				expect(allClearDataEffect.value).toEqual(

@@ -46,7 +46,7 @@
 	},
 	"dependencies": {
 		"redux-saga": "^1.0.1",
-		"studiokit-net-js": "^1.5.3"
+		"studiokit-net-js": "^2.0.0"
 	},
 	"husky": {
 		"hooks": {

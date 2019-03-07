@@ -9,13 +9,13 @@ import {
 	LoggerFunction,
 	TokenPersistenceService,
 	TicketProviderService,
-	CodeProviderService,
+	CodeProviderService
 } from './types'
 import AUTH_ACTION, { createAction } from './actions'
 import {
 	tokenPersistenceService as defaultTokenPersistenceService,
 	ticketProviderService as defaultTicketProviderService,
-	codeProviderService as defaultCodeProviderService,
+	codeProviderService as defaultCodeProviderService
 } from './services'
 
 //#region Helpers
@@ -73,19 +73,19 @@ export function* getTokenFromCode(code: string): SagaIterator {
 		'grant_type=authorization_code',
 		`client_id=${clientCredentials.client_id}`,
 		`client_secret=${clientCredentials.client_secret}`,
-		`code=${encodeURIComponent(code)}`,
+		`code=${encodeURIComponent(code)}`
 	]
 	const formBodyString = formBody.join('&')
 	yield put(
 		createAction(NET_ACTION.DATA_REQUESTED, {
 			modelName: getTokenModelName,
 			body: formBodyString,
-			noStore: true,
+			noStore: true
 		})
 	)
 	const { fetchReceived, fetchFailed } = yield race({
 		fetchReceived: take(takeMatchesModelFetchReceived(getTokenModelName)),
-		fetchFailed: take(takeMatchesModelFetchFailed(getTokenModelName)),
+		fetchFailed: take(takeMatchesModelFetchFailed(getTokenModelName))
 	})
 	if ((fetchReceived && !fetchReceived.data) || fetchFailed) {
 		return null
@@ -101,7 +101,7 @@ export function* getTokenFromRefreshToken(oauthTokenParam: OAuthToken): SagaIter
 		'grant_type=refresh_token',
 		`client_id=${clientCredentials.client_id}`,
 		`client_secret=${clientCredentials.client_secret}`,
-		`refresh_token=${encodeURIComponent(oauthTokenParam.refresh_token)}`,
+		`refresh_token=${encodeURIComponent(oauthTokenParam.refresh_token)}`
 	]
 	const formBodyString = formBody.join('&')
 	yield put(
@@ -109,12 +109,12 @@ export function* getTokenFromRefreshToken(oauthTokenParam: OAuthToken): SagaIter
 			modelName: getTokenModelName,
 			body: formBodyString,
 			noStore: true,
-			timeLimit: 60000,
+			timeLimit: 60000
 		})
 	)
 	const { fetchReceived, fetchFailed } = yield race({
 		fetchReceived: take(takeMatchesModelFetchReceived(getTokenModelName)),
-		fetchFailed: take(takeMatchesModelFetchFailed(getTokenModelName)),
+		fetchFailed: take(takeMatchesModelFetchFailed(getTokenModelName))
 	})
 	// for some reason the response had no body
 	if (fetchReceived && !fetchReceived.data) {
@@ -139,7 +139,7 @@ export function* performTokenRefresh(): SagaIterator {
 		// already refreshing. wait for the current refresh to succeed or fail.
 		yield race({
 			refreshSuccess: take(takeMatchesTokenRefreshSucceeded()),
-			refreshFailed: take(takeMatchesTokenRefreshFailed()),
+			refreshFailed: take(takeMatchesTokenRefreshFailed())
 		})
 		return
 	}
@@ -160,7 +160,7 @@ export function* performTokenRefresh(): SagaIterator {
 		// This should never happen outside of the token having been revoked on the server side
 		yield all({
 			refreshFailed: put(createAction(AUTH_ACTION.TOKEN_REFRESH_FAILED)),
-			logOut: put(createAction(AUTH_ACTION.LOG_OUT_REQUESTED)),
+			logOut: put(createAction(AUTH_ACTION.LOG_OUT_REQUESTED))
 		})
 	}
 	refreshLock = false
@@ -170,7 +170,7 @@ export function* loginFlow(actionPayload: object, modelName: string): SagaIterat
 	yield put(createAction(NET_ACTION.DATA_REQUESTED, actionPayload))
 	const { fetchReceived, fetchFailed } = yield race({
 		fetchReceived: take(takeMatchesModelFetchReceived(modelName)),
-		fetchFailed: take(takeMatchesModelFetchFailed(modelName)),
+		fetchFailed: take(takeMatchesModelFetchFailed(modelName))
 	})
 	if (fetchFailed) {
 		return null
@@ -193,7 +193,7 @@ export function* credentialsLoginFlow(credentials: Credentials, modelName: strin
 			modelName,
 			noStore: true,
 			body: credentials,
-			timeLimit: 120000,
+			timeLimit: 120000
 		},
 		modelName
 	)
@@ -220,8 +220,8 @@ export function* casTicketLoginFlow(ticket: string, service: string): SagaIterat
 			noStore: true,
 			queryParams: {
 				ticket,
-				service,
-			},
+				service
+			}
 		},
 		modelName
 	)
@@ -306,7 +306,7 @@ export default function* authSaga(
 			const { casV1Action, casProxyAction, localAction } = yield race({
 				casV1Action: take(AUTH_ACTION.CAS_V1_LOGIN_REQUESTED),
 				casProxyAction: take(AUTH_ACTION.CAS_PROXY_LOGIN_REQUESTED),
-				localAction: take(AUTH_ACTION.LOCAL_LOGIN_REQUESTED),
+				localAction: take(AUTH_ACTION.LOCAL_LOGIN_REQUESTED)
 			})
 
 			yield put(createAction(AUTH_ACTION.LOGIN_REQUESTED))
@@ -326,7 +326,7 @@ export default function* authSaga(
 				getUserInfo: put(
 					createAction(NET_ACTION.DATA_REQUESTED, { modelName: 'user.userInfo' })
 				),
-				logOut: take(AUTH_ACTION.LOG_OUT_REQUESTED),
+				logOut: take(AUTH_ACTION.LOG_OUT_REQUESTED)
 			})
 		} else {
 			yield put(createAction(AUTH_ACTION.LOGIN_FAILED))
@@ -336,7 +336,7 @@ export default function* authSaga(
 			clearUserData: put(
 				createAction(NET_ACTION.KEY_REMOVAL_REQUESTED, { modelName: 'user' })
 			),
-			clearPersistentToken: call(tokenPersistenceService.persistToken, null),
+			clearPersistentToken: call(tokenPersistenceService.persistToken, null)
 		})
 		oauthToken = undefined
 	} while (true)

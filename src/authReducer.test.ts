@@ -5,14 +5,14 @@ const initialState = {
 	isInitialized: false,
 	isAuthenticating: false,
 	isAuthenticated: false,
-	didFail: false,
+	didFail: false
 }
 
 describe('authReducer', () => {
 	describe('default action', () => {
 		test("don't do nada", () => {
 			const state = authReducer(initialState, {
-				type: AUTH_ACTION.CAS_LOGIN_REQUESTED,
+				type: AUTH_ACTION.CAS_LOGIN_REQUESTED
 			})
 			expect(state).toEqual(initialState)
 		})
@@ -23,7 +23,7 @@ describe('authReducer', () => {
 				isInitialized: true,
 				isAuthenticating: false,
 				isAuthenticated: false,
-				didFail: false,
+				didFail: false
 			})
 		})
 	})
@@ -34,7 +34,7 @@ describe('authReducer', () => {
 			isInitialized: false,
 			isAuthenticating: false,
 			isAuthenticated: true,
-			didFail: false,
+			didFail: false
 		})
 	})
 
@@ -44,7 +44,7 @@ describe('authReducer', () => {
 			isInitialized: false,
 			isAuthenticating: false,
 			isAuthenticated: true,
-			didFail: false,
+			didFail: false
 		})
 	})
 
@@ -54,7 +54,7 @@ describe('authReducer', () => {
 			isInitialized: false,
 			isAuthenticating: true,
 			isAuthenticated: false,
-			didFail: false,
+			didFail: false
 		})
 	})
 
@@ -64,7 +64,7 @@ describe('authReducer', () => {
 			isInitialized: false,
 			isAuthenticating: false,
 			isAuthenticated: false,
-			didFail: false,
+			didFail: false
 		})
 	})
 
@@ -74,7 +74,7 @@ describe('authReducer', () => {
 			isInitialized: false,
 			isAuthenticating: false,
 			isAuthenticated: false,
-			didFail: true,
+			didFail: true
 		})
 	})
 
@@ -84,7 +84,7 @@ describe('authReducer', () => {
 			isInitialized: true,
 			isAuthenticating: false,
 			isAuthenticated: false,
-			didFail: false,
+			didFail: false
 		})
 	})
 })

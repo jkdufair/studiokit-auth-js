@@ -10,7 +10,7 @@ const tokenPersistenceService: TokenPersistenceService = {
 
 	persistToken: token => {
 		storedToken = token
-	},
+	}
 }
 
 const ticketProviderService: TicketProviderService = {
@@ -18,14 +18,14 @@ const ticketProviderService: TicketProviderService = {
 	getAppServiceName: () => undefined,
 	removeTicket: () => {
 		// no op
-	},
+	}
 }
 
 const codeProviderService: CodeProviderService = {
 	getCode: () => undefined,
 	removeCode: () => {
 		// no op
-	},
+	}
 }
 
 export { tokenPersistenceService, ticketProviderService, codeProviderService }

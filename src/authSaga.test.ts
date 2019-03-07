@@ -5,7 +5,7 @@ import actions, { createAction } from './actions'
 import {
 	tokenPersistenceService as defaultTokenPersistenceService,
 	ticketProviderService as defaultTicketProviderService,
-	codeProviderService as defaultCodeProviderService,
+	codeProviderService as defaultCodeProviderService
 } from './services'
 import authSaga, {
 	getOauthToken,
@@ -26,7 +26,7 @@ import authSaga, {
 	casV1LoginFlow,
 	localLoginFlow,
 	casTicketLoginFlow,
-	handleAuthFailure,
+	handleAuthFailure
 } from './authSaga'
 import { OAuthToken } from 'studiokit-net-js/lib/types'
 import { SagaIterator } from '@redux-saga/core'
@@ -54,12 +54,12 @@ const sampleOAuthToken: OAuthToken = {
 	token_type: 'Bearer',
 	expires_in: 3600,
 	'.expires': '2019-01-02',
-	'.issued': '2019-01-01',
+	'.issued': '2019-01-01'
 }
 
 const sampleCredentials: Credentials = {
 	Username: 'some-user',
-	Password: '*****',
+	Password: '*****'
 }
 
 describe('helpers', () => {
@@ -68,7 +68,7 @@ describe('helpers', () => {
 			matchesModelFetchReceived(
 				{
 					type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
-					modelName: 'someModel',
+					modelName: 'someModel'
 				},
 				'someModel'
 			)
@@ -79,7 +79,7 @@ describe('helpers', () => {
 			matchesModelFetchReceived(
 				{
 					type: netActions.TRANSIENT_FETCH_FAILED,
-					modelName: 'someModel',
+					modelName: 'someModel'
 				},
 				'someModel'
 			)
@@ -90,7 +90,7 @@ describe('helpers', () => {
 			matchesModelFetchReceived(
 				{
 					type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
-					modelName: 'someOtherModel',
+					modelName: 'someOtherModel'
 				},
 				'someModel'
 			)
@@ -100,7 +100,7 @@ describe('helpers', () => {
 		expect(
 			takeMatchesModelFetchReceived('someModel')({
 				type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
-				modelName: 'someModel',
+				modelName: 'someModel'
 			})
 		).toEqual(true)
 	})
@@ -110,7 +110,7 @@ describe('helpers', () => {
 			matchesModelFetchFailed(
 				{
 					type: netActions.TRANSIENT_FETCH_FAILED,
-					modelName: 'someModel',
+					modelName: 'someModel'
 				},
 				'someModel'
 			)
@@ -121,7 +121,7 @@ describe('helpers', () => {
 			matchesModelFetchFailed(
 				{
 					type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
-					modelName: 'someModel',
+					modelName: 'someModel'
 				},
 				'someModel'
 			)
@@ -132,7 +132,7 @@ describe('helpers', () => {
 			matchesModelFetchFailed(
 				{
 					type: netActions.TRANSIENT_FETCH_FAILED,
-					modelName: 'someOtherModel',
+					modelName: 'someOtherModel'
 				},
 				'someModel'
 			)
@@ -142,21 +142,21 @@ describe('helpers', () => {
 		expect(
 			takeMatchesModelFetchFailed('someModel')({
 				type: netActions.TRANSIENT_FETCH_FAILED,
-				modelName: 'someModel',
+				modelName: 'someModel'
 			})
 		).toEqual(true)
 	})
 	test('should call matchesTokenRefreshSucceeded from takeMatchesTokenRefreshSucceeded', () => {
 		expect(
 			takeMatchesTokenRefreshSucceeded()({
-				type: actions.TOKEN_REFRESH_SUCCEEDED,
+				type: actions.TOKEN_REFRESH_SUCCEEDED
 			})
 		).toEqual(true)
 	})
 	test('should call matchesTokenRefreshFailed from takeMatchesTokenRefreshFailed', () => {
 		expect(
 			takeMatchesTokenRefreshFailed()({
-				type: actions.TOKEN_REFRESH_FAILED,
+				type: actions.TOKEN_REFRESH_FAILED
 			})
 		).toEqual(true)
 	})
@@ -179,7 +179,7 @@ describe('getTokenFromCode', () => {
 					modelName: 'getToken',
 					body:
 						'grant_type=authorization_code&client_id=test&client_secret=secret&code=some-code',
-					noStore: true,
+					noStore: true
 				})
 			)
 		)
@@ -190,7 +190,7 @@ describe('getTokenFromCode', () => {
 		const putDataRequestedEffect = gen.next()
 		const raceFetchEffect = gen.next()
 		const fetchFailedEffect = gen.next({
-			fetchFailed: {},
+			fetchFailed: {}
 		})
 		expect(fetchFailedEffect.value).toEqual(null)
 		const sagaDone = gen.next()
@@ -202,7 +202,7 @@ describe('getTokenFromCode', () => {
 		const putDataRequestedEffect = gen.next()
 		const raceFetchEffect = gen.next()
 		const fetchReceivedEffect = gen.next({
-			fetchReceived: {},
+			fetchReceived: {}
 		})
 		expect(fetchReceivedEffect.value).toEqual(null)
 		const sagaDone = gen.next()
@@ -216,12 +216,12 @@ describe('getTokenFromCode', () => {
 		const fetchReceivedEffect = gen.next({
 			fetchReceived: {
 				data: {
-					foo: 'bar',
-				},
-			},
+					foo: 'bar'
+				}
+			}
 		})
 		expect(fetchReceivedEffect.value).toEqual({
-			foo: 'bar',
+			foo: 'bar'
 		})
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
@@ -246,7 +246,7 @@ describe('getTokenFromRefreshToken', () => {
 					body:
 						'grant_type=refresh_token&client_id=test&client_secret=secret&refresh_token=some-refresh-token',
 					noStore: true,
-					timeLimit: 60000,
+					timeLimit: 60000
 				})
 			)
 		)
@@ -257,7 +257,7 @@ describe('getTokenFromRefreshToken', () => {
 		const putDataRequestedEffect = gen.next()
 		const raceFetchEffect = gen.next()
 		const fetchFailedEffect = gen.next({
-			fetchFailed: {},
+			fetchFailed: {}
 		})
 		expect(fetchFailedEffect.value).toEqual(null)
 		const sagaDone = gen.next()
@@ -269,7 +269,7 @@ describe('getTokenFromRefreshToken', () => {
 		const putDataRequestedEffect = gen.next()
 		const raceFetchEffect = gen.next()
 		const fetchReceivedEffect = gen.next({
-			fetchReceived: {},
+			fetchReceived: {}
 		})
 		expect(fetchReceivedEffect.value).toEqual(null)
 		const sagaDone = gen.next()
@@ -283,12 +283,12 @@ describe('getTokenFromRefreshToken', () => {
 		const fetchReceivedEffect = gen.next({
 			fetchReceived: {
 				data: {
-					foo: 'bar',
-				},
-			},
+					foo: 'bar'
+				}
+			}
 		})
 		expect(fetchReceivedEffect.value).toEqual({
-			foo: 'bar',
+			foo: 'bar'
 		})
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
@@ -301,9 +301,9 @@ describe('getTokenFromRefreshToken', () => {
 		const fetchReceivedEffect = gen.next({
 			fetchFailed: {
 				errorData: {
-					didTimeOut: true,
-				},
-			},
+					didTimeOut: true
+				}
+			}
 		})
 		expect(fetchReceivedEffect.value).toEqual(sampleOAuthToken)
 		const sagaDone = gen.next()
@@ -317,9 +317,9 @@ describe('getTokenFromRefreshToken', () => {
 		const fetchReceivedEffect = gen.next({
 			fetchFailed: {
 				errorData: {
-					code: 500,
-				},
-			},
+					code: 500
+				}
+			}
 		})
 		expect(fetchReceivedEffect.value).toEqual(sampleOAuthToken)
 		const sagaDone = gen.next()
@@ -405,8 +405,8 @@ describe('performTokenRefresh', () => {
 		const newAccessToken = {
 			...sampleOAuthToken,
 			...{
-				access_token: 'some-new-token',
-			},
+				access_token: 'some-new-token'
+			}
 		}
 		const callPersistTokenEffect = gen.next(newAccessToken)
 		expect(callPersistTokenEffect.value).toEqual(
@@ -436,7 +436,7 @@ describe('performTokenRefresh', () => {
 		expect(allFailureActions.value).toEqual(
 			all({
 				refreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED)),
-				logOut: put(createAction(actions.LOG_OUT_REQUESTED)),
+				logOut: put(createAction(actions.LOG_OUT_REQUESTED))
 			})
 		)
 		const sagaDone = gen.next()
@@ -455,14 +455,14 @@ describe('performTokenRefresh', () => {
 describe('loginFlow', () => {
 	const credentials = {
 		Username: 'username',
-		Password: 'password',
+		Password: 'password'
 	}
 	const modelName = 'some-model'
 	const actionPayload = {
 		modelName,
 		noStore: true,
 		body: credentials,
-		timeLimit: 120000,
+		timeLimit: 120000
 	}
 
 	let authSagaGen: SagaIterator
@@ -482,9 +482,9 @@ describe('loginFlow', () => {
 					noStore: true,
 					body: {
 						Username: 'username',
-						Password: 'password',
+						Password: 'password'
 					},
-					timeLimit: 120000,
+					timeLimit: 120000
 				})
 			)
 		)
@@ -497,8 +497,8 @@ describe('loginFlow', () => {
 		const sagaDone = gen.next({
 			fetchFailed: {
 				type: netActions.FETCH_FAILED,
-				modelName,
-			},
+				modelName
+			}
 		})
 		expect(sagaDone.value).toEqual(null)
 		expect(sagaDone.done).toEqual(true)
@@ -512,8 +512,8 @@ describe('loginFlow', () => {
 			fetchReceived: {
 				type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
 				modelName,
-				data: { Code: 'some-code' },
-			},
+				data: { Code: 'some-code' }
+			}
 		})
 		expect(fetchReceivedEffect.value).toEqual(call(getTokenFromCode, 'some-code'))
 		const sagaDone = gen.next()
@@ -528,8 +528,8 @@ describe('loginFlow', () => {
 			fetchReceived: {
 				type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
 				modelName,
-				data: { code: 'some-code' },
-			},
+				data: { code: 'some-code' }
+			}
 		})
 		expect(fetchReceivedEffect.value).toEqual(call(getTokenFromCode, 'some-code'))
 		const sagaDone = gen.next()
@@ -543,8 +543,8 @@ describe('loginFlow', () => {
 		const sagaDone = gen.next({
 			fetchReceived: {
 				type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
-				modelName,
-			},
+				modelName
+			}
 		})
 		expect(sagaDone.value).toEqual(null)
 		expect(sagaDone.done).toEqual(true)
@@ -562,8 +562,8 @@ describe('loginFlow', () => {
 						noStore: true,
 						queryParams: {
 							ticket: 'some-ticket',
-							service: 'some-service',
-						},
+							service: 'some-service'
+						}
 					},
 					'codeFromCasTicket'
 				)
@@ -584,7 +584,7 @@ describe('loginFlow', () => {
 						modelName: 'some-model',
 						noStore: true,
 						body: sampleCredentials,
-						timeLimit: 120000,
+						timeLimit: 120000
 					},
 					'some-model'
 				)
@@ -639,8 +639,8 @@ describe('handleAuthFailure', () => {
 
 		const gen = handleAuthFailure({
 			errorData: {
-				code: 400,
-			},
+				code: 400
+			}
 		})
 		const sagaDone = gen.next()
 		expect(sagaDone.value).toEqual(undefined)
@@ -654,8 +654,8 @@ describe('handleAuthFailure', () => {
 			...sampleOAuthToken,
 			...{
 				access_token: 'some-access-token',
-				'.expires': expiredDate.toISOString(),
-			},
+				'.expires': expiredDate.toISOString()
+			}
 		}
 		const authSagaGen = authSaga(clientCredentials)
 		const callGetPersistedTokenEffect = authSagaGen.next()
@@ -663,8 +663,8 @@ describe('handleAuthFailure', () => {
 
 		const gen = handleAuthFailure({
 			errorData: {
-				code: 500,
-			},
+				code: 500
+			}
 		})
 		const sagaDone = gen.next()
 		expect(sagaDone.value).toEqual(undefined)
@@ -678,8 +678,8 @@ describe('handleAuthFailure', () => {
 			...sampleOAuthToken,
 			...{
 				access_token: 'some-access-token',
-				'.expires': expiredDate.toISOString(),
-			},
+				'.expires': expiredDate.toISOString()
+			}
 		}
 		const authSagaGen = authSaga(clientCredentials)
 		const callGetPersistedTokenEffect = authSagaGen.next()
@@ -687,8 +687,8 @@ describe('handleAuthFailure', () => {
 
 		const gen = handleAuthFailure({
 			errorData: {
-				code: 302,
-			},
+				code: 302
+			}
 		})
 		const sagaDone = gen.next()
 		expect(sagaDone.value).toEqual(undefined)
@@ -702,8 +702,8 @@ describe('handleAuthFailure', () => {
 			...sampleOAuthToken,
 			...{
 				access_token: 'some-access-token',
-				'.expires': expiredDate.toISOString(),
-			},
+				'.expires': expiredDate.toISOString()
+			}
 		}
 		const authSagaGen = authSaga(clientCredentials)
 		const callGetPersistedTokenEffect = authSagaGen.next()
@@ -711,8 +711,8 @@ describe('handleAuthFailure', () => {
 
 		const gen = handleAuthFailure({
 			errorData: {
-				code: 400,
-			},
+				code: 400
+			}
 		})
 		const callPerformTokenRefreshEffect = gen.next()
 		expect(callPerformTokenRefreshEffect.value).toEqual(call(performTokenRefresh))
@@ -745,7 +745,7 @@ describe('getOauthToken', () => {
 		notExpiredDate.setMinutes(notExpiredDate.getMinutes() + 1)
 		const oauthToken = {
 			access_token: 'some-access-token',
-			'.expires': notExpiredDate.toISOString(),
+			'.expires': notExpiredDate.toISOString()
 		}
 		const authSagaGen = authSaga(clientCredentials)
 		const callGetPersistedTokenEffect = authSagaGen.next()
@@ -760,7 +760,7 @@ describe('getOauthToken', () => {
 		const expiresNowDate = new Date()
 		const oauthToken = {
 			access_token: 'some-access-token',
-			'.expires': expiresNowDate.toISOString(),
+			'.expires': expiresNowDate.toISOString()
 		}
 		const authSagaGen = authSaga(clientCredentials)
 		const callGetPersistedTokenEffect = authSagaGen.next()
@@ -776,7 +776,7 @@ describe('getOauthToken', () => {
 		almostExpiredDate.setSeconds(almostExpiredDate.getSeconds() + 15)
 		const oauthToken = {
 			access_token: 'some-access-token',
-			'.expires': almostExpiredDate.toISOString(),
+			'.expires': almostExpiredDate.toISOString()
 		}
 		const authSagaGen = authSaga(clientCredentials)
 		const callGetPersistedTokenEffect = authSagaGen.next()
@@ -794,8 +794,8 @@ describe('getOauthToken', () => {
 			...sampleOAuthToken,
 			...{
 				access_token: 'some-access-token',
-				'.expires': almostExpiredDate.toISOString(),
-			},
+				'.expires': almostExpiredDate.toISOString()
+			}
 		}
 		const authSagaGen = authSaga(clientCredentials)
 		const callGetPersistedTokenEffect = authSagaGen.next()
@@ -838,7 +838,7 @@ describe('authSaga', () => {
 				},
 				persistToken: token => {
 					storedToken = token
-				},
+				}
 			}
 			const gen = authSaga(clientCredentials, tokenPersistenceService)
 			const callGetPersistedTokenEffect = gen.next()
@@ -873,7 +873,7 @@ describe('authSaga', () => {
 					getAppServiceName: () => 'http://localhost:3000/',
 					removeTicket: () => {
 						didRemoveTicket = true
-					},
+					}
 				}
 				const gen = authSaga(
 					clientCredentials,
@@ -899,7 +899,7 @@ describe('authSaga', () => {
 					getAppServiceName: () => 'http://localhost:3000/',
 					removeTicket: () => {
 						didRemoveTicket = true
-					},
+					}
 				}
 				const gen = authSaga(
 					clientCredentials,
@@ -921,7 +921,7 @@ describe('authSaga', () => {
 					getCode: () => 'some-code',
 					removeCode: () => {
 						didRemoveCode = true
-					},
+					}
 				}
 				const gen = authSaga(
 					clientCredentials,
@@ -945,7 +945,7 @@ describe('authSaga', () => {
 					getCode: () => undefined,
 					removeCode: () => {
 						didRemoveCode = true
-					},
+					}
 				}
 				const gen = authSaga(
 					clientCredentials,
@@ -977,7 +977,7 @@ describe('authSaga', () => {
 		describe('no oauthToken', () => {
 			const payload = {
 				Username: 'username',
-				Password: 'password',
+				Password: 'password'
 			}
 			let gen: SagaIterator
 			beforeEach(() => {
@@ -993,7 +993,7 @@ describe('authSaga', () => {
 					race({
 						casV1Action: take(actions.CAS_V1_LOGIN_REQUESTED),
 						casProxyAction: take(actions.CAS_PROXY_LOGIN_REQUESTED),
-						localAction: take(actions.LOCAL_LOGIN_REQUESTED),
+						localAction: take(actions.LOCAL_LOGIN_REQUESTED)
 					})
 				)
 			})
@@ -1002,10 +1002,10 @@ describe('authSaga', () => {
 				const raceLoginActionEffect = gen.next()
 				const putLoginRequestedEffect = gen.next({
 					casV1Action: {
-						payload,
+						payload
 					},
 					casProxyAction: null,
-					localAction: null,
+					localAction: null
 				})
 				expect(putLoginRequestedEffect.value).toEqual(
 					put(createAction(actions.LOGIN_REQUESTED))
@@ -1016,10 +1016,10 @@ describe('authSaga', () => {
 				const raceLoginActionEffect = gen.next()
 				const putLoginRequestedEffect = gen.next({
 					casV1Action: {
-						payload,
+						payload
 					},
 					casProxyAction: null,
-					localAction: null,
+					localAction: null
 				})
 				const callActionEffect = gen.next()
 				expect(callActionEffect.value).toEqual(call(casV1LoginFlow, payload))
@@ -1031,9 +1031,9 @@ describe('authSaga', () => {
 				const putLoginRequestedEffect = gen.next({
 					casV1Action: null,
 					casProxyAction: {
-						payload,
+						payload
 					},
-					localAction: null,
+					localAction: null
 				})
 				const callActionEffect = gen.next()
 				expect(callActionEffect.value).toEqual(call(casProxyLoginFlow, payload))
@@ -1046,8 +1046,8 @@ describe('authSaga', () => {
 					casV1Action: null,
 					casProxyAction: null,
 					localAction: {
-						payload,
-					},
+						payload
+					}
 				})
 				const callActionEffect = gen.next()
 				expect(callActionEffect.value).toEqual(call(localLoginFlow, payload))
@@ -1058,10 +1058,10 @@ describe('authSaga', () => {
 				const raceLoginActionEffect = gen.next()
 				const putLoginRequestedEffect = gen.next({
 					casV1Action: {
-						payload,
+						payload
 					},
 					casProxyAction: null,
-					localAction: null,
+					localAction: null
 				})
 				const callActionEffect = gen.next()
 				const callPersistTokenEffect = gen.next(sampleOAuthToken)
@@ -1073,13 +1073,13 @@ describe('authSaga', () => {
 					all({
 						loginSuccess: put(
 							createAction(actions.GET_TOKEN_SUCCEEDED, {
-								oauthToken: sampleOAuthToken,
+								oauthToken: sampleOAuthToken
 							})
 						),
 						getUserInfo: put(
 							createAction(netActions.DATA_REQUESTED, { modelName: 'user.userInfo' })
 						),
-						logOut: take(actions.LOG_OUT_REQUESTED),
+						logOut: take(actions.LOG_OUT_REQUESTED)
 					})
 				)
 			})
@@ -1097,10 +1097,10 @@ describe('authSaga', () => {
 				const raceLoginActionEffect = gen.next()
 				const putLoginRequestedEffect = gen.next({
 					casV1Action: {
-						payload,
+						payload
 					},
 					casProxyAction: null,
-					localAction: null,
+					localAction: null
 				})
 				const callActionEffect = gen.next()
 				const putLoginFailedEffect = gen.next(undefined)
@@ -1132,7 +1132,7 @@ describe('authSaga', () => {
 						getUserInfo: put(
 							createAction(netActions.DATA_REQUESTED, { modelName: 'user.userInfo' })
 						),
-						logOut: take(actions.LOG_OUT_REQUESTED),
+						logOut: take(actions.LOG_OUT_REQUESTED)
 					})
 				)
 			})
@@ -1160,7 +1160,7 @@ describe('authSaga', () => {
 						clearPersistentToken: call(
 							defaultTokenPersistenceService.persistToken,
 							null
-						),
+						)
 					})
 				)
 				const raceLoginActionEffect = gen.next()
@@ -1168,7 +1168,7 @@ describe('authSaga', () => {
 					race({
 						casV1Action: take(actions.CAS_V1_LOGIN_REQUESTED),
 						casProxyAction: take(actions.CAS_PROXY_LOGIN_REQUESTED),
-						localAction: take(actions.LOCAL_LOGIN_REQUESTED),
+						localAction: take(actions.LOCAL_LOGIN_REQUESTED)
 					})
 				)
 			})

@@ -5,7 +5,7 @@ const initialState = {
 	isInitialized: false,
 	isAuthenticating: false,
 	isAuthenticated: false,
-	didFail: false,
+	didFail: false
 }
 
 export default function authReducer(state = initialState, action: AuthAction) {
@@ -13,7 +13,7 @@ export default function authReducer(state = initialState, action: AuthAction) {
 		case AUTH_ACTION.AUTH_INITIALIZED:
 			return Object.assign({}, state, {
 				isInitialized: true,
-				isAuthenticated: !!action.oauthToken,
+				isAuthenticated: !!action.oauthToken
 			})
 
 		case AUTH_ACTION.GET_TOKEN_SUCCEEDED:
@@ -21,28 +21,28 @@ export default function authReducer(state = initialState, action: AuthAction) {
 			return Object.assign({}, state, {
 				isAuthenticating: false,
 				isAuthenticated: true,
-				didFail: false,
+				didFail: false
 			})
 
 		case AUTH_ACTION.LOGIN_REQUESTED:
 			return Object.assign({}, state, {
 				isAuthenticating: true,
 				isAuthenticated: false,
-				didFail: false,
+				didFail: false
 			})
 
 		case AUTH_ACTION.LOG_OUT_REQUESTED:
 			return Object.assign({}, state, {
 				isAuthenticating: false,
 				isAuthenticated: false,
-				didFail: false,
+				didFail: false
 			})
 
 		case AUTH_ACTION.LOGIN_FAILED:
 			return Object.assign({}, state, {
 				isAuthenticating: false,
 				isAuthenticated: false,
-				didFail: true,
+				didFail: true
 			})
 
 		default:

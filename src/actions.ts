@@ -15,7 +15,7 @@ enum AUTH_ACTION {
 	GET_TOKEN_SUCCEEDED = 'auth/GET_TOKEN_SUCCEEDED',
 	TOKEN_REFRESH_SUCCEEDED = 'auth/TOKEN_REFRESH_SUCCEEDED',
 	TOKEN_REFRESH_FAILED = 'auth/TOKEN_REFRESH_FAILED',
-	LOGIN_FAILED = 'auth/LOGIN_FAILED',
+	LOGIN_FAILED = 'auth/LOGIN_FAILED'
 }
 
 export function createAction(type: string, payload?: any): Action {

@@ -1,8 +1,7 @@
-// @flow
+import { TokenPersistenceService, TicketProviderService, CodeProviderService } from './types'
+import { OAuthToken } from 'studiokit-net-js/lib/types'
 
-import type { TokenPersistenceService, TicketProviderService, CodeProviderService } from './types'
-
-let storedToken = null
+let storedToken: OAuthToken | null
 
 const tokenPersistenceService: TokenPersistenceService = {
 	getPersistedToken: () => {
@@ -11,18 +10,22 @@ const tokenPersistenceService: TokenPersistenceService = {
 
 	persistToken: token => {
 		storedToken = token
-	}
+	},
 }
 
 const ticketProviderService: TicketProviderService = {
-	getTicket: () => null,
-	getAppServiceName: () => null,
-	removeTicket: () => {}
+	getTicket: () => undefined,
+	getAppServiceName: () => undefined,
+	removeTicket: () => {
+		// no op
+	},
 }
 
 const codeProviderService: CodeProviderService = {
-	getCode: () => null,
-	removeCode: () => {}
+	getCode: () => undefined,
+	removeCode: () => {
+		// no op
+	},
 }
 
 export { tokenPersistenceService, ticketProviderService, codeProviderService }

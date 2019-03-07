@@ -1,0 +1,25 @@
+{
+	"compilerOptions": {
+		/* Basic Options */
+		"target": "es5",
+		"module": "commonjs",
+		"lib": ["es5", "dom"],
+		"declaration": true,
+		"outDir": "./lib",
+
+		/* Strict Type-Checking Options */
+		"strict": true,
+		"skipLibCheck": false,
+		"forceConsistentCasingInFileNames": true,
+
+		/* Module Resolution Options */
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true
+	},
+	"include": [
+		"src/**/*"
+	],
+	"exclude": [
+		"node_modules", "lib", "**/*.test.ts"
+	]
+}

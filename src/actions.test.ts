@@ -1,4 +1,4 @@
-import AUTH_ACTION, { createAction } from './actions'
+import { AUTH_ACTION, createAction } from './actions'
 
 describe('createAction', () => {
 	it('creates a basic action', () => {

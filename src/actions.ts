@@ -1,6 +1,6 @@
 import { Action } from 'redux'
 
-enum AUTH_ACTION {
+export enum AUTH_ACTION {
 	AUTH_INITIALIZED = 'auth/INITIALIZED',
 
 	// App level requests
@@ -21,5 +21,3 @@ enum AUTH_ACTION {
 export function createAction(type: string, payload?: any): Action {
 	return Object.assign({}, { type }, payload)
 }
-
-export default AUTH_ACTION

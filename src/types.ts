@@ -1,6 +1,6 @@
 import { Action } from 'redux'
 import { OAuthToken } from 'studiokit-net-js'
-import AUTH_ACTION from './actions'
+import { AUTH_ACTION } from './actions'
 
 export interface AuthAction extends Action<AUTH_ACTION> {
 	oauthToken?: OAuthToken

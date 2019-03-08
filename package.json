@@ -2,10 +2,10 @@
 	"name": "studiokit-auth-js",
 	"version": "1.0.0",
 	"scripts": {
-		"lint": "tslint -c tslint.json -p tsconfig.json 'src/**/*.{ts,tsx}'",
-		"prettier:check": "prettier --list-different \"src/**/*.{ts,tsx}\"",
-		"prettier:write": "prettier --write \"src/**/*.{ts,tsx}\"",
-		"fix": "yarn prettier:write && yarn lint --fix",
+		"tslint-check": "tslint-config-prettier-check ./tslint.json",
+		"lint:core": "tslint -c tslint.json -p tsconfig.base.json",
+		"lint": "yarn lint:core 'src/**/*.{ts,tsx}'",
+		"fix": "yarn lint --fix",
 		"test": "jest",
 		"coverage": "jest --coverage",
 		"coveralls": "npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
@@ -33,6 +33,8 @@
 		"rimraf": "^2.6.3",
 		"ts-jest": "^24.0.0",
 		"tslint": "^5.13.1",
+		"tslint-config-prettier": "^1.18.0",
+		"tslint-plugin-prettier": "^2.0.1",
 		"typescript": "^3.3.3333"
 	},
 	"dependencies": {
@@ -59,7 +61,7 @@
 	},
 	"lint-staged": {
 		"*.ts": [
-			"yarn prettier:write && yarn fix",
+			"yarn lint:core --fix",
 			"git add"
 		]
 	},

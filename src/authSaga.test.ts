@@ -1,32 +1,32 @@
 import { SagaIterator } from '@redux-saga/core'
-import { call, take, takeEvery, put, race, all } from 'redux-saga/effects'
+import { all, call, put, race, take, takeEvery } from 'redux-saga/effects'
 import { NET_ACTION, OAuthToken } from 'studiokit-net-js'
 
-import AUTH_ACTION, { createAction } from './actions'
-import { Credentials, TokenPersistenceService } from './types'
-import {
-	tokenPersistenceService as defaultTokenPersistenceService,
-	ticketProviderService as defaultTicketProviderService
-} from './services'
+import { AUTH_ACTION, createAction } from './actions'
 import authSaga, {
+	casProxyLoginFlow,
+	casTicketLoginFlow,
+	casV1LoginFlow,
+	credentialsLoginFlow,
 	getOauthToken,
-	matchesModelFetchReceived,
-	takeMatchesModelFetchReceived,
-	matchesModelFetchFailed,
-	takeMatchesModelFetchFailed,
-	takeMatchesTokenRefreshSucceeded,
-	takeMatchesTokenRefreshFailed,
 	getTokenFromCode,
 	getTokenFromRefreshToken,
-	performTokenRefresh,
-	loginFlow,
-	credentialsLoginFlow,
-	casProxyLoginFlow,
-	casV1LoginFlow,
+	handleAuthFailure,
 	localLoginFlow,
-	casTicketLoginFlow,
-	handleAuthFailure
+	loginFlow,
+	matchesModelFetchFailed,
+	matchesModelFetchReceived,
+	performTokenRefresh,
+	takeMatchesModelFetchFailed,
+	takeMatchesModelFetchReceived,
+	takeMatchesTokenRefreshFailed,
+	takeMatchesTokenRefreshSucceeded
 } from './authSaga'
+import {
+	ticketProviderService as defaultTicketProviderService,
+	tokenPersistenceService as defaultTokenPersistenceService
+} from './services'
+import { Credentials, TokenPersistenceService } from './types'
 
 let consoleOutput: any
 const consoleDebug = console.debug

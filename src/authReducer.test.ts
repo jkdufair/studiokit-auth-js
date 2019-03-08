@@ -1,4 +1,4 @@
-import AUTH_ACTION from './actions'
+import { AUTH_ACTION } from './actions'
 import authReducer from './authReducer'
 
 const initialState = {

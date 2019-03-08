@@ -1,4 +1,4 @@
-import { EndpointMappings } from 'studiokit-net-js/lib/types'
+import { EndpointMappings } from 'studiokit-net-js'
 
 const endpointMappings: EndpointMappings = {
 	codeFromTicket: {

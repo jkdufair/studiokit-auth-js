@@ -1,11 +1,12 @@
+import { SagaIterator } from '@redux-saga/core'
 import { call, take, takeEvery, put, race, all } from 'redux-saga/effects'
-import { actions as netActions } from 'studiokit-net-js'
+import { NET_ACTION, OAuthToken } from 'studiokit-net-js'
 
-import actions, { createAction } from './actions'
+import AUTH_ACTION, { createAction } from './actions'
+import { Credentials, TokenPersistenceService } from './types'
 import {
 	tokenPersistenceService as defaultTokenPersistenceService,
-	ticketProviderService as defaultTicketProviderService,
-	codeProviderService as defaultCodeProviderService
+	ticketProviderService as defaultTicketProviderService
 } from './services'
 import authSaga, {
 	getOauthToken,
@@ -13,9 +14,7 @@ import authSaga, {
 	takeMatchesModelFetchReceived,
 	matchesModelFetchFailed,
 	takeMatchesModelFetchFailed,
-	matchesTokenRefreshSucceeded,
 	takeMatchesTokenRefreshSucceeded,
-	matchesTokenRefreshFailed,
 	takeMatchesTokenRefreshFailed,
 	getTokenFromCode,
 	getTokenFromRefreshToken,
@@ -28,9 +27,6 @@ import authSaga, {
 	casTicketLoginFlow,
 	handleAuthFailure
 } from './authSaga'
-import { OAuthToken } from 'studiokit-net-js/lib/types'
-import { SagaIterator } from '@redux-saga/core'
-import { Credentials, TokenPersistenceService } from './types'
 
 let consoleOutput: any
 const consoleDebug = console.debug
@@ -67,18 +63,18 @@ describe('helpers', () => {
 		expect(
 			matchesModelFetchReceived(
 				{
-					type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
+					type: NET_ACTION.TRANSIENT_FETCH_RESULT_RECEIVED,
 					modelName: 'someModel'
 				},
 				'someModel'
 			)
 		).toEqual(true)
 	})
-	test('matchesModelFetchReceived ignores other actions for modelName', () => {
+	test('matchesModelFetchReceived ignores other AUTH_ACTION.for modelName', () => {
 		expect(
 			matchesModelFetchReceived(
 				{
-					type: netActions.TRANSIENT_FETCH_FAILED,
+					type: NET_ACTION.TRANSIENT_FETCH_FAILED,
 					modelName: 'someModel'
 				},
 				'someModel'
@@ -89,7 +85,7 @@ describe('helpers', () => {
 		expect(
 			matchesModelFetchReceived(
 				{
-					type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
+					type: NET_ACTION.TRANSIENT_FETCH_RESULT_RECEIVED,
 					modelName: 'someOtherModel'
 				},
 				'someModel'
@@ -99,7 +95,7 @@ describe('helpers', () => {
 	test('should call matchesModelFetchReceived from takeMatchesModelFetchReceived', () => {
 		expect(
 			takeMatchesModelFetchReceived('someModel')({
-				type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
+				type: NET_ACTION.TRANSIENT_FETCH_RESULT_RECEIVED,
 				modelName: 'someModel'
 			})
 		).toEqual(true)
@@ -109,18 +105,18 @@ describe('helpers', () => {
 		expect(
 			matchesModelFetchFailed(
 				{
-					type: netActions.TRANSIENT_FETCH_FAILED,
+					type: NET_ACTION.TRANSIENT_FETCH_FAILED,
 					modelName: 'someModel'
 				},
 				'someModel'
 			)
 		).toEqual(true)
 	})
-	test('matchesModelFetchFailed ignores other actions for modelName', () => {
+	test('matchesModelFetchFailed ignores other AUTH_ACTION.for modelName', () => {
 		expect(
 			matchesModelFetchFailed(
 				{
-					type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
+					type: NET_ACTION.TRANSIENT_FETCH_RESULT_RECEIVED,
 					modelName: 'someModel'
 				},
 				'someModel'
@@ -131,7 +127,7 @@ describe('helpers', () => {
 		expect(
 			matchesModelFetchFailed(
 				{
-					type: netActions.TRANSIENT_FETCH_FAILED,
+					type: NET_ACTION.TRANSIENT_FETCH_FAILED,
 					modelName: 'someOtherModel'
 				},
 				'someModel'
@@ -141,7 +137,7 @@ describe('helpers', () => {
 	test('should call matchesModelFetchFailed from takeMatchesModelFetchFailed', () => {
 		expect(
 			takeMatchesModelFetchFailed('someModel')({
-				type: netActions.TRANSIENT_FETCH_FAILED,
+				type: NET_ACTION.TRANSIENT_FETCH_FAILED,
 				modelName: 'someModel'
 			})
 		).toEqual(true)
@@ -149,14 +145,14 @@ describe('helpers', () => {
 	test('should call matchesTokenRefreshSucceeded from takeMatchesTokenRefreshSucceeded', () => {
 		expect(
 			takeMatchesTokenRefreshSucceeded()({
-				type: actions.TOKEN_REFRESH_SUCCEEDED
+				type: AUTH_ACTION.TOKEN_REFRESH_SUCCEEDED
 			})
 		).toEqual(true)
 	})
 	test('should call matchesTokenRefreshFailed from takeMatchesTokenRefreshFailed', () => {
 		expect(
 			takeMatchesTokenRefreshFailed()({
-				type: actions.TOKEN_REFRESH_FAILED
+				type: AUTH_ACTION.TOKEN_REFRESH_FAILED
 			})
 		).toEqual(true)
 	})
@@ -175,7 +171,7 @@ describe('getTokenFromCode', () => {
 		const putDataRequestedEffect = gen.next()
 		expect(putDataRequestedEffect.value).toEqual(
 			put(
-				createAction(netActions.DATA_REQUESTED, {
+				createAction(NET_ACTION.DATA_REQUESTED, {
 					modelName: 'getToken',
 					body:
 						'grant_type=authorization_code&client_id=test&client_secret=secret&code=some-code',
@@ -241,7 +237,7 @@ describe('getTokenFromRefreshToken', () => {
 		const putDataRequestedEffect = gen.next()
 		expect(putDataRequestedEffect.value).toEqual(
 			put(
-				createAction(netActions.DATA_REQUESTED, {
+				createAction(NET_ACTION.DATA_REQUESTED, {
 					modelName: 'getToken',
 					body:
 						'grant_type=refresh_token&client_id=test&client_secret=secret&refresh_token=some-refresh-token',
@@ -399,7 +395,7 @@ describe('performTokenRefresh', () => {
 		expect(sagaDone2.done).toEqual(true)
 	})
 
-	test('should call all success actions if refresh succeeds', () => {
+	test('should call all success AUTH_ACTION.if refresh succeeds', () => {
 		const gen = performTokenRefresh()
 		const callGetTokenFromRefreshTokenEffect = gen.next()
 		const newAccessToken = {
@@ -414,7 +410,7 @@ describe('performTokenRefresh', () => {
 		)
 		const putRefreshSuccessEffect = gen.next()
 		expect(putRefreshSuccessEffect.value).toEqual(
-			put(createAction(actions.TOKEN_REFRESH_SUCCEEDED, { oauthToken: newAccessToken }))
+			put(createAction(AUTH_ACTION.TOKEN_REFRESH_SUCCEEDED, { oauthToken: newAccessToken }))
 		)
 		const sagaDone = gen.next()
 		expect(sagaDone.done).toEqual(true)
@@ -428,15 +424,15 @@ describe('performTokenRefresh', () => {
 		expect(sagaDone.done).toEqual(true)
 	})
 
-	test('should call all failure actions if refresh fails', () => {
+	test('should call all failure AUTH_ACTION.if refresh fails', () => {
 		const gen = performTokenRefresh()
 		const callGetTokenFromRefreshTokenEffect = gen.next()
 		const allFailureActions = gen.next(null)
 		expect(consoleOutput).toEqual('OAuth token failed to refresh')
 		expect(allFailureActions.value).toEqual(
 			all({
-				refreshFailed: put(createAction(actions.TOKEN_REFRESH_FAILED)),
-				logOut: put(createAction(actions.LOG_OUT_REQUESTED))
+				refreshFailed: put(createAction(AUTH_ACTION.TOKEN_REFRESH_FAILED)),
+				logOut: put(createAction(AUTH_ACTION.LOG_OUT_REQUESTED))
 			})
 		)
 		const sagaDone = gen.next()
@@ -477,7 +473,7 @@ describe('loginFlow', () => {
 		const putDataRequestedEffect = gen.next()
 		expect(putDataRequestedEffect.value).toEqual(
 			put(
-				createAction(netActions.DATA_REQUESTED, {
+				createAction(NET_ACTION.DATA_REQUESTED, {
 					modelName: 'some-model',
 					noStore: true,
 					body: {
@@ -496,7 +492,7 @@ describe('loginFlow', () => {
 		const raceFetchResultEffect = gen.next()
 		const sagaDone = gen.next({
 			fetchFailed: {
-				type: netActions.FETCH_FAILED,
+				type: NET_ACTION.FETCH_FAILED,
 				modelName
 			}
 		})
@@ -510,7 +506,7 @@ describe('loginFlow', () => {
 		const raceFetchResultEffect = gen.next()
 		const fetchReceivedEffect = gen.next({
 			fetchReceived: {
-				type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
+				type: NET_ACTION.TRANSIENT_FETCH_RESULT_RECEIVED,
 				modelName,
 				data: { Code: 'some-code' }
 			}
@@ -526,7 +522,7 @@ describe('loginFlow', () => {
 		const raceFetchResultEffect = gen.next()
 		const fetchReceivedEffect = gen.next({
 			fetchReceived: {
-				type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
+				type: NET_ACTION.TRANSIENT_FETCH_RESULT_RECEIVED,
 				modelName,
 				data: { code: 'some-code' }
 			}
@@ -542,7 +538,7 @@ describe('loginFlow', () => {
 		const raceFetchResultEffect = gen.next()
 		const sagaDone = gen.next({
 			fetchReceived: {
-				type: netActions.TRANSIENT_FETCH_RESULT_RECEIVED,
+				type: NET_ACTION.TRANSIENT_FETCH_RESULT_RECEIVED,
 				modelName
 			}
 		})
@@ -847,7 +843,7 @@ describe('authSaga', () => {
 			)
 			const putAuthInitializedEffect = gen.next(storedToken)
 			expect(putAuthInitializedEffect.value).toEqual(
-				put(createAction(actions.AUTH_INITIALIZED, { oauthToken: storedToken }))
+				put(createAction(AUTH_ACTION.AUTH_INITIALIZED, { oauthToken: storedToken }))
 			)
 		})
 
@@ -861,7 +857,7 @@ describe('authSaga', () => {
 				defaultTokenPersistenceService.getPersistedToken()
 			)
 			expect(putAuthInitializedEffect.value).toEqual(
-				put(createAction(actions.AUTH_INITIALIZED, { oauthToken: null }))
+				put(createAction(AUTH_ACTION.AUTH_INITIALIZED, { oauthToken: null }))
 			)
 		})
 
@@ -888,7 +884,7 @@ describe('authSaga', () => {
 				expect(didRemoveTicket).toEqual(true)
 				const putAuthInitializedEffect = gen.next()
 				expect(putAuthInitializedEffect.value).toEqual(
-					put(createAction(actions.AUTH_INITIALIZED))
+					put(createAction(AUTH_ACTION.AUTH_INITIALIZED))
 				)
 			})
 
@@ -909,7 +905,7 @@ describe('authSaga', () => {
 				const callGetPersistedTokenEffect = gen.next()
 				const putAuthInitializedEffect = gen.next()
 				expect(putAuthInitializedEffect.value).toEqual(
-					put(createAction(actions.AUTH_INITIALIZED))
+					put(createAction(AUTH_ACTION.AUTH_INITIALIZED))
 				)
 			})
 		})
@@ -935,7 +931,7 @@ describe('authSaga', () => {
 				expect(didRemoveCode).toEqual(true)
 				const putAuthInitializedEffect = gen.next()
 				expect(putAuthInitializedEffect.value).toEqual(
-					put(createAction(actions.AUTH_INITIALIZED))
+					put(createAction(AUTH_ACTION.AUTH_INITIALIZED))
 				)
 			})
 
@@ -956,7 +952,7 @@ describe('authSaga', () => {
 				const callGetPersistedTokenEffect = gen.next()
 				const putAuthInitializedEffect = gen.next()
 				expect(putAuthInitializedEffect.value).toEqual(
-					put(createAction(actions.AUTH_INITIALIZED))
+					put(createAction(AUTH_ACTION.AUTH_INITIALIZED))
 				)
 			})
 		})
@@ -967,7 +963,7 @@ describe('authSaga', () => {
 				const putAuthInitializedEffect = gen.next(undefined)
 				const takeEveryFetchFailureEffect = gen.next()
 				expect(takeEveryFetchFailureEffect.value).toEqual(
-					takeEvery(netActions.TRY_FETCH_FAILED, handleAuthFailure)
+					takeEvery(NET_ACTION.TRY_FETCH_FAILED, handleAuthFailure)
 				)
 			})
 		})
@@ -991,9 +987,9 @@ describe('authSaga', () => {
 				const raceLoginActionEffect = gen.next()
 				expect(raceLoginActionEffect.value).toEqual(
 					race({
-						casV1Action: take(actions.CAS_V1_LOGIN_REQUESTED),
-						casProxyAction: take(actions.CAS_PROXY_LOGIN_REQUESTED),
-						localAction: take(actions.LOCAL_LOGIN_REQUESTED)
+						casV1Action: take(AUTH_ACTION.CAS_V1_LOGIN_REQUESTED),
+						casProxyAction: take(AUTH_ACTION.CAS_PROXY_LOGIN_REQUESTED),
+						localAction: take(AUTH_ACTION.LOCAL_LOGIN_REQUESTED)
 					})
 				)
 			})
@@ -1008,7 +1004,7 @@ describe('authSaga', () => {
 					localAction: null
 				})
 				expect(putLoginRequestedEffect.value).toEqual(
-					put(createAction(actions.LOGIN_REQUESTED))
+					put(createAction(AUTH_ACTION.LOGIN_REQUESTED))
 				)
 			})
 
@@ -1072,14 +1068,14 @@ describe('authSaga', () => {
 				expect(allLoginSuccessEffect.value).toEqual(
 					all({
 						loginSuccess: put(
-							createAction(actions.GET_TOKEN_SUCCEEDED, {
+							createAction(AUTH_ACTION.GET_TOKEN_SUCCEEDED, {
 								oauthToken: sampleOAuthToken
 							})
 						),
 						getUserInfo: put(
-							createAction(netActions.DATA_REQUESTED, { modelName: 'user.userInfo' })
+							createAction(NET_ACTION.DATA_REQUESTED, { modelName: 'user.userInfo' })
 						),
-						logOut: take(actions.LOG_OUT_REQUESTED)
+						logOut: take(AUTH_ACTION.LOG_OUT_REQUESTED)
 					})
 				)
 			})
@@ -1090,7 +1086,9 @@ describe('authSaga', () => {
 					// no success
 				})
 				const putLoginFailedEffect = gen.next(undefined)
-				expect(putLoginFailedEffect.value).toEqual(put(createAction(actions.LOGIN_FAILED)))
+				expect(putLoginFailedEffect.value).toEqual(
+					put(createAction(AUTH_ACTION.LOGIN_FAILED))
+				)
 			})
 
 			test('puts LOGIN_FAILED if no token after race condition success but login flow fail', () => {
@@ -1104,7 +1102,9 @@ describe('authSaga', () => {
 				})
 				const callActionEffect = gen.next()
 				const putLoginFailedEffect = gen.next(undefined)
-				expect(putLoginFailedEffect.value).toEqual(put(createAction(actions.LOGIN_FAILED)))
+				expect(putLoginFailedEffect.value).toEqual(
+					put(createAction(AUTH_ACTION.LOGIN_FAILED))
+				)
 			})
 		})
 
@@ -1127,12 +1127,12 @@ describe('authSaga', () => {
 				expect(allLoginSuccessEffect.value).toEqual(
 					all({
 						loginSuccess: put(
-							createAction(actions.GET_TOKEN_SUCCEEDED, { oauthToken })
+							createAction(AUTH_ACTION.GET_TOKEN_SUCCEEDED, { oauthToken })
 						),
 						getUserInfo: put(
-							createAction(netActions.DATA_REQUESTED, { modelName: 'user.userInfo' })
+							createAction(NET_ACTION.DATA_REQUESTED, { modelName: 'user.userInfo' })
 						),
-						logOut: take(actions.LOG_OUT_REQUESTED)
+						logOut: take(AUTH_ACTION.LOG_OUT_REQUESTED)
 					})
 				)
 			})
@@ -1155,7 +1155,7 @@ describe('authSaga', () => {
 				expect(allClearDataEffect.value).toEqual(
 					all({
 						clearUserData: put(
-							createAction(netActions.KEY_REMOVAL_REQUESTED, { modelName: 'user' })
+							createAction(NET_ACTION.KEY_REMOVAL_REQUESTED, { modelName: 'user' })
 						),
 						clearPersistentToken: call(
 							defaultTokenPersistenceService.persistToken,
@@ -1166,9 +1166,9 @@ describe('authSaga', () => {
 				const raceLoginActionEffect = gen.next()
 				expect(raceLoginActionEffect.value).toEqual(
 					race({
-						casV1Action: take(actions.CAS_V1_LOGIN_REQUESTED),
-						casProxyAction: take(actions.CAS_PROXY_LOGIN_REQUESTED),
-						localAction: take(actions.LOCAL_LOGIN_REQUESTED)
+						casV1Action: take(AUTH_ACTION.CAS_V1_LOGIN_REQUESTED),
+						casProxyAction: take(AUTH_ACTION.CAS_PROXY_LOGIN_REQUESTED),
+						localAction: take(AUTH_ACTION.LOCAL_LOGIN_REQUESTED)
 					})
 				)
 			})

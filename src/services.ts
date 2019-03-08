@@ -1,5 +1,5 @@
+import { OAuthToken } from 'studiokit-net-js'
 import { TokenPersistenceService, TicketProviderService, CodeProviderService } from './types'
-import { OAuthToken } from 'studiokit-net-js/lib/types'
 
 let storedToken: OAuthToken | null
 

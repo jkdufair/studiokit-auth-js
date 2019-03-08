@@ -1,4 +1,6 @@
-import actions from './actions'
+export { default as AUTH_ACTION } from './actions'
+export * from './types'
+
 import endpointMappings from './endpointMappings'
 import authReducer from './authReducer'
 import authSaga, { getOauthToken } from './authSaga'
@@ -6,4 +8,4 @@ import authSaga, { getOauthToken } from './authSaga'
 const sagas = { authSaga }
 const reducers = { authReducer }
 
-export { actions, endpointMappings, reducers, sagas, getOauthToken }
+export { endpointMappings, reducers, sagas, getOauthToken }

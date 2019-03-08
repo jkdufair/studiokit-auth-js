@@ -1,11 +1,17 @@
-export { default as AUTH_ACTION } from './actions'
+import AUTH_ACTIONS from './actions'
+export { AUTH_ACTIONS }
+// deprecated, backwards compatible export
+export { AUTH_ACTIONS as actions }
+
 export * from './types'
 
 import endpointMappings from './endpointMappings'
+export { endpointMappings }
+// deprecated, backwards compatible export
+export { endpointMappings as apis }
+
 import authReducer from './authReducer'
 import authSaga, { getOauthToken } from './authSaga'
-
 const sagas = { authSaga }
 const reducers = { authReducer }
-
-export { endpointMappings, reducers, sagas, getOauthToken }
+export { reducers, sagas, getOauthToken }

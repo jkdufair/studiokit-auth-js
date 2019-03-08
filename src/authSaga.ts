@@ -1,21 +1,21 @@
 import { SagaIterator } from '@redux-saga/core'
-import { call, put, race, take, takeEvery, all } from 'redux-saga/effects'
+import { all, call, put, race, take, takeEvery } from 'redux-saga/effects'
 import { NET_ACTION, OAuthToken } from 'studiokit-net-js'
 
 import AUTH_ACTION, { createAction } from './actions'
 import {
+	codeProviderService as defaultCodeProviderService,
+	ticketProviderService as defaultTicketProviderService,
+	tokenPersistenceService as defaultTokenPersistenceService
+} from './services'
+import {
 	ClientCredentials,
+	CodeProviderService,
 	Credentials,
 	LoggerFunction,
-	TokenPersistenceService,
 	TicketProviderService,
-	CodeProviderService
+	TokenPersistenceService
 } from './types'
-import {
-	tokenPersistenceService as defaultTokenPersistenceService,
-	ticketProviderService as defaultTicketProviderService,
-	codeProviderService as defaultCodeProviderService
-} from './services'
 
 //#region Helpers
 

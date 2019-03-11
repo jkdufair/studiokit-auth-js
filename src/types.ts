@@ -19,8 +19,8 @@ export interface Credentials {
 export type LoggerFunction = (message: string) => void
 
 export interface TokenPersistenceService {
-	getPersistedToken(): OAuthToken | null
-	persistToken(oauthToken: OAuthToken | null): void
+	getPersistedToken: () => OAuthToken | null | Promise<OAuthToken | null>
+	persistToken: (oauthToken: OAuthToken | null) => void
 }
 
 export interface TicketProviderService {

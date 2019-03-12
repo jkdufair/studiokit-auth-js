@@ -41,7 +41,7 @@
 		"@types/node": "^11.10.5",
 		"redux": "^4.0.1",
 		"redux-saga": "^1.0.2",
-		"studiokit-net-js": "^2.0.0"
+		"studiokit-net-js": "3.x"
 	},
 	"prettier": {
 		"parser": "typescript",

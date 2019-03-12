@@ -330,20 +330,6 @@
     "@types/istanbul-lib-coverage" "^1.1.0"
     "@types/yargs" "^12.0.9"
 
-"@redux-saga/core@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@redux-saga/core/-/core-1.0.1.tgz#d75e6435316c3503a4630334b4e1d027858171c3"
-  integrity sha512-e/rvF5jA/2BBLHwQWIwRVSbD8ylQAUXp0zaCUJrfDQmsKGY2VJbcUdSgkM4rxRss9d4U/c2Oa0D9o5geDCup0w==
-  dependencies:
-    "@babel/runtime" "^7.0.0"
-    "@redux-saga/deferred" "^1.0.1"
-    "@redux-saga/delay-p" "^1.0.1"
-    "@redux-saga/is" "^1.0.1"
-    "@redux-saga/symbols" "^1.0.1"
-    "@redux-saga/types" "^1.0.0"
-    redux ">=0.10 <5"
-    typescript-tuple "^2.1.0"
-
 "@redux-saga/core@^1.0.2":
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@redux-saga/core/-/core-1.0.2.tgz#4336a5bb4253e5ca69681c25a863fbbc03ea6d88"
@@ -370,14 +356,6 @@
   dependencies:
     "@redux-saga/symbols" "^1.0.1"
 
-"@redux-saga/is@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@redux-saga/is/-/is-1.0.1.tgz#ad57536e45a46559704423a64032462797a0d014"
-  integrity sha512-hOm7MyvGToJX6aeYkKmoL88a/7bzD8PXP1yPfELEgrKeiN5oBvMTbZ0LNU3boM3HJcYuiyjZED9qw12YpmXGAA==
-  dependencies:
-    "@redux-saga/symbols" "^1.0.1"
-    "@redux-saga/types" "^1.0.0"
-
 "@redux-saga/is@^1.0.2":
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@redux-saga/is/-/is-1.0.2.tgz#7f4be014c97061898d7efb11d6c9de31e943ed38"
@@ -390,11 +368,6 @@
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@redux-saga/symbols/-/symbols-1.0.1.tgz#46512ae1275f88df061c42168d0f600ddb170c1e"
   integrity sha512-akKkzcVnb1RzJaZV2LQFbi51abvdICMuAKwwLoCjjxLbLAGIw9EJxk5ucNnWSSCEsoEQMeol5tkAcK+Xzuv1Bg==
-
-"@redux-saga/types@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@redux-saga/types/-/types-1.0.0.tgz#9342b7eb52ed3c903e122841407d4984b7338339"
-  integrity sha512-9I7ejD0kASU3H8gD6Wv8Y3F9VabNdvjE8apkGfSphCAjt46snJKjt79CnHdxo1xkTE0qMEZzmYmZ8hnIYDydhw==
 
 "@redux-saga/types@^1.0.2":
   version "1.0.2"
@@ -458,6 +431,11 @@
   dependencies:
     "@types/jest-diff" "*"
 
+"@types/lodash@^4.14.122":
+  version "4.14.123"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.123.tgz#39be5d211478c8dd3bdae98ee75bb7efe4abfe4d"
+  integrity sha512-pQvPkc4Nltyx7G1Ww45OjVqUsJP4UsZm+GWJpigXgkikZqJgRm4c48g027o6tdgubWHwFRF15iFd+Y4Pmqv6+Q==
+
 "@types/node@*", "@types/node@^11.10.5":
   version "11.10.5"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-11.10.5.tgz#fbaca34086bdc118011e1f05c47688d432f2d571"
@@ -467,6 +445,13 @@
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@types/stack-utils/-/stack-utils-1.0.1.tgz#0a851d3bd96498fa25c33ab7278ed3bd65f06c3e"
   integrity sha512-l42BggppR6zLmpfU6fq9HEa2oGPEI8yrSPL3GITjfRInppYFahObbIQOQK3UGxEnyQpltZLaPe75046NOZQikw==
+
+"@types/uuid@^3.4.4":
+  version "3.4.4"
+  resolved "https://registry.yarnpkg.com/@types/uuid/-/uuid-3.4.4.tgz#7af69360fa65ef0decb41fd150bf4ca5c0cefdf5"
+  integrity sha512-tPIgT0GUmdJQNSHxp0X2jnpQfBSTfGxUMc/2CXBU2mnyTFVYVa2ojpoQ74w0U2yn2vw3jnC640+77lkFFpdVDw==
+  dependencies:
+    "@types/node" "*"
 
 "@types/yargs@^12.0.2", "@types/yargs@^12.0.9":
   version "12.0.9"
@@ -3315,13 +3300,6 @@ realpath-native@^1.1.0:
   dependencies:
     util.promisify "^1.0.0"
 
-redux-saga@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/redux-saga/-/redux-saga-1.0.1.tgz#5f5c6803882bc5c7c8dd558562e8392ef15e3ffe"
-  integrity sha512-XAp0OliRaoBCk/qynMfvXnTtC1WXrEpSqMwPKtOZHXVbQFekdcei/Eln/w0L7m3NcNxYQSlWwdUoffWzB1oAAQ==
-  dependencies:
-    "@redux-saga/core" "^1.0.1"
-
 redux-saga@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/redux-saga/-/redux-saga-1.0.2.tgz#0599703f975438f1b2f9d2b9a965ec58f0fdfcd7"
@@ -3815,14 +3793,18 @@ strip-eof@^1.0.0:
   resolved "https://registry.yarnpkg.com/strip-eof/-/strip-eof-1.0.0.tgz#bb43ff5598a6eb05d89b59fcd129c983313606bf"
   integrity sha1-u0P/VZim6wXYm1n80SnJgzE2Br8=
 
-studiokit-net-js@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/studiokit-net-js/-/studiokit-net-js-2.0.0.tgz#728ea0095ccedfb01fe3fd05d40fe1d6231295e0"
-  integrity sha512-9XouUxKbOiCuewv4S+u+TW8jf/uc2Oj3yzcrkefzL7Ov5ZKfQGhtumpp9uC1+1kp8k+B94xrJ/VQJkVjSWl3xg==
+studiokit-net-js@3.x:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/studiokit-net-js/-/studiokit-net-js-3.0.0.tgz#92b95a126a7df00dc846dbcc868c415e1ee00fb9"
+  integrity sha512-h2gRaJnR3JdgEM/GvIGrx+ckP93yBTtKkkXmOwHsQrNO3EysOvKJUF4pOD2xaFztNJU3uCS3GVbcWbH3k5Aojw==
   dependencies:
+    "@redux-saga/types" "^1.0.2"
+    "@types/lodash" "^4.14.122"
+    "@types/node" "^11.10.5"
+    "@types/uuid" "^3.4.4"
     lodash "^4.17.11"
     redux "^4.0.1"
-    redux-saga "^1.0.1"
+    redux-saga "^1.0.2"
     uuid "^3.3.2"
 
 supports-color@^2.0.0:

@@ -4,7 +4,6 @@ import { NET_ACTION, OAuthToken, OAuthTokenResponse } from 'studiokit-net-js'
 
 import { AUTH_ACTION, createAction } from './actions'
 import authSaga, {
-	casProxyLoginFlow,
 	casTicketLoginFlow,
 	casV1LoginFlow,
 	credentialsLoginFlow,
@@ -590,18 +589,6 @@ describe('loginFlow', () => {
 		})
 	})
 
-	describe('casProxyLoginFlow', () => {
-		test('should call credentialsLoginFlow with given credentials', () => {
-			const gen = casProxyLoginFlow(sampleCredentials)
-			const callCredentialsLoginFlowEffect = gen.next()
-			expect(callCredentialsLoginFlowEffect.value).toEqual(
-				call(credentialsLoginFlow, sampleCredentials, 'codeFromCasProxy')
-			)
-			const sagaDone = gen.next()
-			expect(sagaDone.done).toEqual(true)
-		})
-	})
-
 	describe('casV1LoginFlow', () => {
 		test('should call credentialsLoginFlow with given credentials', () => {
 			const gen = casV1LoginFlow(sampleCredentials)
@@ -988,7 +975,6 @@ describe('authSaga', () => {
 				expect(raceLoginActionEffect.value).toEqual(
 					race({
 						casV1Action: take(AUTH_ACTION.CAS_V1_LOGIN_REQUESTED),
-						casProxyAction: take(AUTH_ACTION.CAS_PROXY_LOGIN_REQUESTED),
 						localAction: take(AUTH_ACTION.LOCAL_LOGIN_REQUESTED)
 					})
 				)
@@ -1000,7 +986,6 @@ describe('authSaga', () => {
 					casV1Action: {
 						payload
 					},
-					casProxyAction: null,
 					localAction: null
 				})
 				expect(putLoginRequestedEffect.value).toEqual(
@@ -1014,7 +999,6 @@ describe('authSaga', () => {
 					casV1Action: {
 						payload
 					},
-					casProxyAction: null,
 					localAction: null
 				})
 				const callActionEffect = gen.next()
@@ -1022,25 +1006,10 @@ describe('authSaga', () => {
 				const callPersistTokenEffect = gen.next(sampleOAuthToken)
 			})
 
-			test('calls casProxyLoginFlow if won race', () => {
-				const raceLoginActionEffect = gen.next()
-				const putLoginRequestedEffect = gen.next({
-					casV1Action: null,
-					casProxyAction: {
-						payload
-					},
-					localAction: null
-				})
-				const callActionEffect = gen.next()
-				expect(callActionEffect.value).toEqual(call(casProxyLoginFlow, payload))
-				const callPersistTokenEffect = gen.next(sampleOAuthToken)
-			})
-
 			test('calls localLoginFlow if won race', () => {
 				const raceLoginActionEffect = gen.next()
 				const putLoginRequestedEffect = gen.next({
 					casV1Action: null,
-					casProxyAction: null,
 					localAction: {
 						payload
 					}
@@ -1056,7 +1025,6 @@ describe('authSaga', () => {
 					casV1Action: {
 						payload
 					},
-					casProxyAction: null,
 					localAction: null
 				})
 				const callActionEffect = gen.next()
@@ -1097,7 +1065,6 @@ describe('authSaga', () => {
 					casV1Action: {
 						payload
 					},
-					casProxyAction: null,
 					localAction: null
 				})
 				const callActionEffect = gen.next()
@@ -1167,7 +1134,6 @@ describe('authSaga', () => {
 				expect(raceLoginActionEffect.value).toEqual(
 					race({
 						casV1Action: take(AUTH_ACTION.CAS_V1_LOGIN_REQUESTED),
-						casProxyAction: take(AUTH_ACTION.CAS_PROXY_LOGIN_REQUESTED),
 						localAction: take(AUTH_ACTION.LOCAL_LOGIN_REQUESTED)
 					})
 				)

@@ -27,7 +27,7 @@ import {
 /**
  * A default logger function that logs to the console. Used if no other logger is provided
  *
- * @param {any} message - The message to log
+ * @param message - The message to log
  */
 const defaultLogger: LoggerFunction = (message?: any) => {
 	console.debug(message)
@@ -203,10 +203,6 @@ export function* credentialsLoginFlow(credentials: Credentials, modelName: strin
 	)
 }
 
-export function* casProxyLoginFlow(credentials: Credentials): SagaIterator {
-	return yield call(credentialsLoginFlow, credentials, 'codeFromCasProxy')
-}
-
 export function* casV1LoginFlow(credentials: Credentials): SagaIterator {
 	return yield call(credentialsLoginFlow, credentials, 'codeFromCasV1')
 }
@@ -307,17 +303,14 @@ export default function* authSaga(
 
 	do {
 		if (!oauthToken) {
-			const { casV1Action, casProxyAction, localAction } = yield race({
+			const { casV1Action, localAction } = yield race({
 				casV1Action: take(AUTH_ACTION.CAS_V1_LOGIN_REQUESTED),
-				casProxyAction: take(AUTH_ACTION.CAS_PROXY_LOGIN_REQUESTED),
 				localAction: take(AUTH_ACTION.LOCAL_LOGIN_REQUESTED)
 			})
 
 			yield put(createAction(AUTH_ACTION.LOGIN_REQUESTED))
 			if (casV1Action) {
 				oauthToken = yield call(casV1LoginFlow, casV1Action.payload)
-			} else if (casProxyAction) {
-				oauthToken = yield call(casProxyLoginFlow, casProxyAction.payload)
 			} else if (localAction) {
 				oauthToken = yield call(localLoginFlow, localAction.payload)
 			}

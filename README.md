@@ -22,49 +22,25 @@
 		auth: authReducers.authReducer
 	})
 	```
-1. Create services for `tokenPersistenceService`, `ticketProviderService`, and `codeProviderService`. The defaults do not return any results, but your services should most likely target AsyncStorage or LocalStorage and the `window.location.search` property. See `src/services.js` for reference.
-	```js
-	let storedToken
-
-	const tokenPersistenceService: TokenPersistenceService = {
-		getPersistedToken: () => {
-			return storedToken
-		},
-
-		persistToken: token => {
-			storedToken = token
-		}
-	}
-
-	const ticketProviderService: TicketProviderService = {
-		getTicket: () => null,
-		getAppServiceName: () => null,
-		removeTicket: () => {}
-	}
-
-	const codeProviderService: CodeProviderService = {
-		getCode: () => null,
-		removeCode: () => {}
-	}
-	```
-1. Update your `rootSaga.js` module to add `authSaga` with your OAuth client credentials and services, merge your app's apis with `authApis`, and pass `getOauthToken` into `fetchSaga`.
+1. Create services for `tokenPersistenceService`, `ticketProviderService`, and `codeProviderService`. The defaults do not return any results, but your services should most likely target AsyncStorage or LocalStorage and the `window.location.search` property. See `src/services.ts` for reference.
+1. Update your `rootSaga` module to add `authSaga` with your OAuth client credentials and services, merge your app's endpointMappings with `authEndpointMappings`, and pass `getOAuthToken` into `fetchSaga`.
 	```js
 	import { all } from 'redux-saga/effects'
 	import { sagas as netSagas } from 'studiokit-net-js'
 	import {
 		sagas as authSagas,
-		apis as authApis,
-		getOauthToken,
-		actions as authActions
+		endpointMappings as authEndpointMappings,
+		getOAuthToken,
+		AUTH_ACTION
 	} from 'studiokit-auth-js'
-	import apis from 'apis'
+	import endpointMappings from 'endpointMappings'
 
 	export default function* rootSaga() {
 		yield all({
 			fetchSaga: netSagas.fetchSaga(
-				_.merge(authApis, apis),
+				_.merge(authEndpointMappings, endpointMappings),
 				'https://yourapp.com',
-				getOauthToken
+				getOAuthToken
 			),
 			loginFlow: authSagas.authSaga(
 				{
@@ -114,11 +90,11 @@ Alternately, you can dispatch manual auth actions to the store for login forms.
 
 ```js
 import { dispatchAction } from 'services/actionService'
-import { actions as authActions } from 'studiokit-auth-js'
+import { AUTH_ACTION } from 'studiokit-auth-js'
 .
 .
 .
-dispatchAction(authActions.LOCAL_LOGIN_REQUESTED, {
+dispatchAction(AUTH_ACTION.LOCAL_LOGIN_REQUESTED, {
 	payload: {
 		Username: 'joe',
 		Password: 'joeRocks1!'

@@ -1,6 +1,12 @@
 import { SagaIterator } from '@redux-saga/core'
 import { all, call, put, race, take, takeEvery } from 'redux-saga/effects'
-import { LoggerFunction, NET_ACTION, OAuthToken, TokenAccessFunction } from 'studiokit-net-js'
+import {
+	LoggerFunction,
+	NET_ACTION,
+	OAuthToken,
+	OAuthTokenResponse,
+	TokenAccessFunction
+} from 'studiokit-net-js'
 
 import { AUTH_ACTION, createAction } from './actions'
 import {
@@ -56,7 +62,7 @@ export const takeMatchesTokenRefreshFailed = () => (incomingAction: any) =>
 //#region Local Variables
 
 let clientCredentials: ClientCredentials
-let oauthToken: OAuthToken | undefined
+let oauthToken: OAuthTokenResponse = null
 let logger: LoggerFunction
 let tokenPersistenceService: TokenPersistenceService
 let refreshLock: boolean
@@ -336,6 +342,6 @@ export default function* authSaga(
 			),
 			clearPersistentToken: call(tokenPersistenceService.persistToken, null)
 		})
-		oauthToken = undefined
+		oauthToken = null
 	} while (true)
 }

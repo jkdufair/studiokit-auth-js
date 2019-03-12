@@ -1,5 +1,5 @@
 import { Action } from 'redux'
-import { OAuthToken } from 'studiokit-net-js'
+import { OAuthToken, OAuthTokenResponse } from 'studiokit-net-js'
 import { AUTH_ACTION } from './actions'
 
 export interface AuthAction extends Action<AUTH_ACTION> {
@@ -17,8 +17,8 @@ export interface Credentials {
 }
 
 export interface TokenPersistenceService {
-	getPersistedToken: () => OAuthToken | null | Promise<OAuthToken | null>
-	persistToken: (oauthToken: OAuthToken | null) => void
+	getPersistedToken: () => OAuthTokenResponse | Promise<OAuthTokenResponse>
+	persistToken: (oauthToken: OAuthTokenResponse) => void
 }
 
 export interface TicketProviderService {

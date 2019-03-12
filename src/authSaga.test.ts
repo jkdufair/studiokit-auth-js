@@ -1,6 +1,6 @@
 import { SagaIterator } from '@redux-saga/core'
 import { all, call, put, race, take, takeEvery } from 'redux-saga/effects'
-import { NET_ACTION, OAuthToken } from 'studiokit-net-js'
+import { NET_ACTION, OAuthToken, OAuthTokenResponse } from 'studiokit-net-js'
 
 import { AUTH_ACTION, createAction } from './actions'
 import authSaga, {
@@ -827,7 +827,7 @@ describe('authSaga', () => {
 		})
 
 		test('calls tokenPersistenceService.getPersistedToken to load oauthToken', () => {
-			let storedToken: OAuthToken | null = sampleOAuthToken
+			let storedToken: OAuthTokenResponse = sampleOAuthToken
 			const tokenPersistenceService: TokenPersistenceService = {
 				getPersistedToken: () => {
 					return storedToken

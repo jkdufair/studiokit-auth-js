@@ -1,6 +1,6 @@
 import { SagaIterator } from '@redux-saga/core'
 import { all, call, put, race, take, takeEvery } from 'redux-saga/effects'
-import { NET_ACTION, OAuthToken } from 'studiokit-net-js'
+import { LoggerFunction, NET_ACTION, OAuthToken, TokenAccessFunction } from 'studiokit-net-js'
 
 import { AUTH_ACTION, createAction } from './actions'
 import {
@@ -12,7 +12,6 @@ import {
 	ClientCredentials,
 	CodeProviderService,
 	Credentials,
-	LoggerFunction,
 	TicketProviderService,
 	TokenPersistenceService
 } from './types'
@@ -22,9 +21,9 @@ import {
 /**
  * A default logger function that logs to the console. Used if no other logger is provided
  *
- * @param {string} message - The message to log
+ * @param {any} message - The message to log
  */
-const defaultLogger: LoggerFunction = (message: string) => {
+const defaultLogger: LoggerFunction = (message?: any) => {
 	console.debug(message)
 }
 
@@ -240,7 +239,7 @@ export function* handleAuthFailure(action: any): SagaIterator {
 	}
 }
 
-export function* getOauthToken(modelName: string): SagaIterator {
+export const getOAuthToken: TokenAccessFunction = function*(modelName: string) {
 	// Don't try to refresh the token if we're already in a request to refresh the token
 	if (modelName === 'getToken') {
 		return null

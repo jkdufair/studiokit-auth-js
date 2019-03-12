@@ -4,7 +4,7 @@ export * from './types'
 export { default as endpointMappings } from './endpointMappings'
 
 import authReducer from './authReducer'
-import authSaga, { getOauthToken } from './authSaga'
+import authSaga, { getOAuthToken } from './authSaga'
 const sagas = { authSaga }
 const reducers = { authReducer }
-export { reducers, sagas, getOauthToken }
+export { reducers, sagas, getOAuthToken }

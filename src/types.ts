@@ -16,8 +16,6 @@ export interface Credentials {
 	Password: string
 }
 
-export type LoggerFunction = (message: string) => void
-
 export interface TokenPersistenceService {
 	getPersistedToken: () => OAuthToken | null | Promise<OAuthToken | null>
 	persistToken: (oauthToken: OAuthToken | null) => void

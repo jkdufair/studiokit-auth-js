@@ -8,7 +8,7 @@ import authSaga, {
 	casTicketLoginFlow,
 	casV1LoginFlow,
 	credentialsLoginFlow,
-	getOauthToken,
+	getOAuthToken,
 	getTokenFromCode,
 	getTokenFromRefreshToken,
 	handleAuthFailure,
@@ -718,9 +718,9 @@ describe('handleAuthFailure', () => {
 	})
 })
 
-describe('getOauthToken', () => {
+describe('getOAuthToken', () => {
 	test('should return null if modelName equals "getToken"', () => {
-		const gen = getOauthToken('getToken')
+		const gen = getOAuthToken('getToken')
 		const token = gen.next()
 		expect(token.value).toEqual(null)
 	})
@@ -731,7 +731,7 @@ describe('getOauthToken', () => {
 		const callGetPersistedTokenEffect = authSagaGen.next()
 		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
 
-		const gen = getOauthToken('someModelName')
+		const gen = getOAuthToken('someModelName')
 		const token = gen.next()
 		expect(token.value).toEqual(oauthToken)
 	})
@@ -747,7 +747,7 @@ describe('getOauthToken', () => {
 		const callGetPersistedTokenEffect = authSagaGen.next()
 		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
 
-		const gen = getOauthToken('someModelName')
+		const gen = getOAuthToken('someModelName')
 		const token = gen.next()
 		expect(token.value).toEqual(oauthToken)
 	})
@@ -762,7 +762,7 @@ describe('getOauthToken', () => {
 		const callGetPersistedTokenEffect = authSagaGen.next()
 		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
 
-		const gen = getOauthToken('someModelName')
+		const gen = getOAuthToken('someModelName')
 		const callPerformRefreshEffect = gen.next()
 		expect(callPerformRefreshEffect.value).toEqual(call(performTokenRefresh))
 	})
@@ -778,7 +778,7 @@ describe('getOauthToken', () => {
 		const callGetPersistedTokenEffect = authSagaGen.next()
 		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
 
-		const gen = getOauthToken('someModelName')
+		const gen = getOAuthToken('someModelName')
 		const callPerformRefreshEffect = gen.next()
 		expect(callPerformRefreshEffect.value).toEqual(call(performTokenRefresh))
 	})
@@ -797,7 +797,7 @@ describe('getOauthToken', () => {
 		const callGetPersistedTokenEffect = authSagaGen.next()
 		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
 
-		const gen = getOauthToken('someModelName')
+		const gen = getOAuthToken('someModelName')
 		const callPerformRefreshEffect = gen.next()
 		const sagaDone = gen.next()
 		expect(sagaDone.value).toEqual(oauthToken)

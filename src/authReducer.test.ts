@@ -1,5 +1,5 @@
-import authReducer from '../src/authReducer'
-import actions from '../src/actions'
+import { AUTH_ACTION } from './actions'
+import authReducer from './authReducer'
 
 const initialState = {
 	isInitialized: false,
@@ -11,12 +11,14 @@ const initialState = {
 describe('authReducer', () => {
 	describe('default action', () => {
 		test("don't do nada", () => {
-			const state = authReducer(initialState, { type: 'FOOBAR', modelName: 'test' })
+			const state = authReducer(initialState, {
+				type: AUTH_ACTION.CAS_LOGIN_REQUESTED
+			})
 			expect(state).toEqual(initialState)
 		})
 
 		test('no state parameter passed', () => {
-			const state = authReducer(undefined, { type: actions.AUTH_INITIALIZED })
+			const state = authReducer(undefined, { type: AUTH_ACTION.AUTH_INITIALIZED })
 			expect(state).toEqual({
 				isInitialized: true,
 				isAuthenticating: false,
@@ -27,7 +29,7 @@ describe('authReducer', () => {
 	})
 
 	describe('GET_TOKEN_SUCCEEDED', () => {
-		const state = authReducer(initialState, { type: actions.GET_TOKEN_SUCCEEDED })
+		const state = authReducer(initialState, { type: AUTH_ACTION.GET_TOKEN_SUCCEEDED })
 		expect(state).toEqual({
 			isInitialized: false,
 			isAuthenticating: false,
@@ -37,7 +39,7 @@ describe('authReducer', () => {
 	})
 
 	describe('TOKEN_REFRESH_SUCCEEDED', () => {
-		const state = authReducer(initialState, { type: actions.TOKEN_REFRESH_SUCCEEDED })
+		const state = authReducer(initialState, { type: AUTH_ACTION.TOKEN_REFRESH_SUCCEEDED })
 		expect(state).toEqual({
 			isInitialized: false,
 			isAuthenticating: false,
@@ -47,7 +49,7 @@ describe('authReducer', () => {
 	})
 
 	describe('LOGIN_REQUESTED', () => {
-		const state = authReducer(initialState, { type: actions.LOGIN_REQUESTED })
+		const state = authReducer(initialState, { type: AUTH_ACTION.LOGIN_REQUESTED })
 		expect(state).toEqual({
 			isInitialized: false,
 			isAuthenticating: true,
@@ -57,7 +59,7 @@ describe('authReducer', () => {
 	})
 
 	describe('LOG_OUT_REQUESTED', () => {
-		const state = authReducer(initialState, { type: actions.LOG_OUT_REQUESTED })
+		const state = authReducer(initialState, { type: AUTH_ACTION.LOG_OUT_REQUESTED })
 		expect(state).toEqual({
 			isInitialized: false,
 			isAuthenticating: false,
@@ -67,7 +69,7 @@ describe('authReducer', () => {
 	})
 
 	describe('LOGIN_FAILED', () => {
-		const state = authReducer(initialState, { type: actions.LOGIN_FAILED })
+		const state = authReducer(initialState, { type: AUTH_ACTION.LOGIN_FAILED })
 		expect(state).toEqual({
 			isInitialized: false,
 			isAuthenticating: false,
@@ -77,7 +79,7 @@ describe('authReducer', () => {
 	})
 
 	describe('AUTH_INITIALIZED', () => {
-		const state = authReducer(initialState, { type: actions.AUTH_INITIALIZED })
+		const state = authReducer(initialState, { type: AUTH_ACTION.AUTH_INITIALIZED })
 		expect(state).toEqual({
 			isInitialized: true,
 			isAuthenticating: false,

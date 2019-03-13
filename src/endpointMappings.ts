@@ -1,11 +1,6 @@
-export default {
-	codeFromTicket: {
-		_config: {
-			fetch: {
-				path: '/???'
-			}
-		}
-	},
+import { EndpointMappings } from 'studiokit-net-js'
+
+const endpointMappings: EndpointMappings = {
 	codeFromLocalCredentials: {
 		_config: {
 			fetch: {
@@ -18,14 +13,6 @@ export default {
 		_config: {
 			fetch: {
 				path: '/api/account/CasV1',
-				method: 'POST'
-			}
-		}
-	},
-	codeFromCasProxy: {
-		_config: {
-			fetch: {
-				path: '/api/account/CasProxy',
 				method: 'POST'
 			}
 		}
@@ -50,3 +37,5 @@ export default {
 		}
 	}
 }
+
+export default endpointMappings

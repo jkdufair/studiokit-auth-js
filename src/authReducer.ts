@@ -1,4 +1,5 @@
-import actions from './actions'
+import { AUTH_ACTION } from './actions'
+import { AuthAction } from './types'
 
 const initialState = {
 	isInitialized: false,
@@ -7,37 +8,37 @@ const initialState = {
 	didFail: false
 }
 
-export default function authReducer(state = initialState, action) {
+export default function authReducer(state = initialState, action: AuthAction) {
 	switch (action.type) {
-		case actions.AUTH_INITIALIZED:
+		case AUTH_ACTION.AUTH_INITIALIZED:
 			return Object.assign({}, state, {
 				isInitialized: true,
 				isAuthenticated: !!action.oauthToken
 			})
 
-		case actions.GET_TOKEN_SUCCEEDED:
-		case actions.TOKEN_REFRESH_SUCCEEDED:
+		case AUTH_ACTION.GET_TOKEN_SUCCEEDED:
+		case AUTH_ACTION.TOKEN_REFRESH_SUCCEEDED:
 			return Object.assign({}, state, {
 				isAuthenticating: false,
 				isAuthenticated: true,
 				didFail: false
 			})
 
-		case actions.LOGIN_REQUESTED:
+		case AUTH_ACTION.LOGIN_REQUESTED:
 			return Object.assign({}, state, {
 				isAuthenticating: true,
 				isAuthenticated: false,
 				didFail: false
 			})
 
-		case actions.LOG_OUT_REQUESTED:
+		case AUTH_ACTION.LOG_OUT_REQUESTED:
 			return Object.assign({}, state, {
 				isAuthenticating: false,
 				isAuthenticated: false,
 				didFail: false
 			})
 
-		case actions.LOGIN_FAILED:
+		case AUTH_ACTION.LOGIN_FAILED:
 			return Object.assign({}, state, {
 				isAuthenticating: false,
 				isAuthenticated: false,

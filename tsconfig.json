@@ -3,7 +3,7 @@
 		/* Basic Options */
 		"target": "es5",
 		"module": "commonjs",
-		"lib": ["es5", "dom"],
+		"lib": ["esnext", "dom"],
 		"declaration": true,
 		"outDir": "./lib",
 

@@ -9,8 +9,8 @@ export interface AuthAction extends Action<AUTH_ACTION> {
 export interface AuthState {
 	isAuthenticated: boolean
 	isAuthenticating: boolean
-	isInitialized?: boolean
-	didFail?: boolean
+	isInitialized: boolean
+	didFail: boolean
 }
 
 export interface ClientCredentials {

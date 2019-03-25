@@ -692,7 +692,7 @@ describe('handleAuthFailure', () => {
 		expect(sagaDone.done).toEqual(true)
 	})
 
-	test('triggers refresh if token is expired and code is 400-499', () => {
+	test('triggers refresh if token is expired and code is 401', () => {
 		let expiredDate = new Date()
 		expiredDate.setMinutes(expiredDate.getMinutes() - 1)
 		const oauthToken = {
@@ -705,7 +705,7 @@ describe('handleAuthFailure', () => {
 
 		const gen = handleAuthFailure({
 			errorData: {
-				code: 400
+				code: 401
 			}
 		})
 		const callPerformTokenRefreshEffect = gen.next()

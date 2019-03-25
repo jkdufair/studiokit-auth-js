@@ -1,6 +1,6 @@
 {
 	"name": "studiokit-auth-js",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"scripts": {
 		"eslint-check": "eslint --print-config .eslintrc.js | eslint-config-prettier-check",
 		"lint": "eslint --ext=js --ignore-pattern '!.eslintrc.js' src test",

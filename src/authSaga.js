@@ -232,12 +232,7 @@ function* casTicketLoginFlow(ticket: string, service: string): Generator<*, ?OAu
 function* handleAuthFailure(action): Generator<*, *, *> {
 	// This should be unlikely since we normally have a refresh token loop happening
 	// but if the app is backgrounded, the loop might not be caught up yet
-	if (
-		oauthToken &&
-		action.errorData &&
-		action.errorData.code >= 400 &&
-		action.errorData.code <= 499
-	) {
+	if (oauthToken && action.errorData && action.errorData.code === 401) {
 		logger('token expired - refreshing')
 		yield call(performTokenRefresh)
 	}

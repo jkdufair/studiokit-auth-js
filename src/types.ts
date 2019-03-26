@@ -6,6 +6,13 @@ export interface AuthAction extends Action<AUTH_ACTION> {
 	oauthToken?: OAuthToken
 }
 
+export interface AuthState {
+	isAuthenticated: boolean
+	isAuthenticating: boolean
+	isInitialized: boolean
+	didFail: boolean
+}
+
 export interface ClientCredentials {
 	client_id: string
 	client_secret: string

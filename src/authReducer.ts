@@ -1,5 +1,5 @@
 import { AUTH_ACTION } from './actions'
-import { AuthAction } from './types'
+import { AuthAction, AuthState } from './types'
 
 const initialState = {
 	isInitialized: false,
@@ -8,7 +8,7 @@ const initialState = {
 	didFail: false
 }
 
-export default function authReducer(state = initialState, action: AuthAction) {
+export default function authReducer(state: AuthState = initialState, action: AuthAction) {
 	switch (action.type) {
 		case AUTH_ACTION.AUTH_INITIALIZED:
 			return Object.assign({}, state, {

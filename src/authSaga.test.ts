@@ -622,7 +622,7 @@ describe('handleAuthFailure', () => {
 
 		const gen = handleAuthFailure({
 			errorData: {
-				code: 400
+				code: 401
 			}
 		})
 		const sagaDone = gen.next()
@@ -630,55 +630,7 @@ describe('handleAuthFailure', () => {
 		expect(sagaDone.done).toEqual(true)
 	})
 
-	test('does nothing if error code is greater than 400-499', () => {
-		const expiredDate = new Date()
-		expiredDate.setMinutes(expiredDate.getMinutes() - 1)
-		const oauthToken = {
-			...sampleOAuthToken,
-			...{
-				access_token: 'some-access-token',
-				'.expires': expiredDate.toISOString()
-			}
-		}
-		const authSagaGen = authSaga(clientCredentials)
-		const callGetPersistedTokenEffect = authSagaGen.next()
-		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
-
-		const gen = handleAuthFailure({
-			errorData: {
-				code: 500
-			}
-		})
-		const sagaDone = gen.next()
-		expect(sagaDone.value).toEqual(undefined)
-		expect(sagaDone.done).toEqual(true)
-	})
-
-	test('does nothing if error code is less than than 400-499', () => {
-		const expiredDate = new Date()
-		expiredDate.setMinutes(expiredDate.getMinutes() - 1)
-		const oauthToken = {
-			...sampleOAuthToken,
-			...{
-				access_token: 'some-access-token',
-				'.expires': expiredDate.toISOString()
-			}
-		}
-		const authSagaGen = authSaga(clientCredentials)
-		const callGetPersistedTokenEffect = authSagaGen.next()
-		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
-
-		const gen = handleAuthFailure({
-			errorData: {
-				code: 302
-			}
-		})
-		const sagaDone = gen.next()
-		expect(sagaDone.value).toEqual(undefined)
-		expect(sagaDone.done).toEqual(true)
-	})
-
-	test('triggers refresh if token is expired and code is 400-499', () => {
+	test('does nothing if error code is not 401', () => {
 		const expiredDate = new Date()
 		expiredDate.setMinutes(expiredDate.getMinutes() - 1)
 		const oauthToken = {
@@ -695,6 +647,30 @@ describe('handleAuthFailure', () => {
 		const gen = handleAuthFailure({
 			errorData: {
 				code: 400
+			}
+		})
+		const sagaDone = gen.next()
+		expect(sagaDone.value).toEqual(undefined)
+		expect(sagaDone.done).toEqual(true)
+	})
+
+	test('triggers refresh if token is expired and code is 401', () => {
+		const expiredDate = new Date()
+		expiredDate.setMinutes(expiredDate.getMinutes() - 1)
+		const oauthToken = {
+			...sampleOAuthToken,
+			...{
+				access_token: 'some-access-token',
+				'.expires': expiredDate.toISOString()
+			}
+		}
+		const authSagaGen = authSaga(clientCredentials)
+		const callGetPersistedTokenEffect = authSagaGen.next()
+		const putAuthInitializedEffect = authSagaGen.next(oauthToken)
+
+		const gen = handleAuthFailure({
+			errorData: {
+				code: 401
 			}
 		})
 		const callPerformTokenRefreshEffect = gen.next()
